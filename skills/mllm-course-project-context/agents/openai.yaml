@@ -1,0 +1,4 @@
+interface:
+  display_name: "MLLM Course Project Context"
+  short_description: "Project context for multimodal course planning and execution"
+  default_prompt: "Use $mllm-course-project-context to align implementation, experiments, and team milestones for this course project."
