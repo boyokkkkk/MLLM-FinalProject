@@ -1,0 +1,26 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+.pytest_cache/
+.mypy_cache/
+
+outputs/
+logs/
+tmp/
+
+.DS_Store
+Thumbs.db
+
+# Dataset and cache artifacts
+data/raw/
+data/raw_hf/
+data/interim/
+data/processed/
+data/images/
+
+# Keep directory placeholders if present
+!data/raw/.gitkeep
+!data/raw_hf/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep

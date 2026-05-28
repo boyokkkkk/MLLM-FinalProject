@@ -1,0 +1,8 @@
+﻿paths:
+  data_root: data
+  raw_pdf: data/raw/pdf
+  raw_ppt: data/raw/ppt
+  interim_parsed: data/interim/parsed
+  interim_chunks: data/interim/chunks
+  processed_custom: data/processed/custom_course
+  output_root: outputs

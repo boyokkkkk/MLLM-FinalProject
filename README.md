@@ -1,0 +1,115 @@
+﻿# Multimodal Doc RAG
+
+A minimal but extensible project skeleton for multimodal document QA.
+
+## What is implemented now
+
+- Repo bootstrap and data directory conventions.
+- Backend API with stable contracts for multi-frontend compatibility.
+- Model invocation wrappers:
+  - VLM chat interface (Qwen-VL via OpenAI-compatible API)
+  - Text embedding interface
+  - Vision embedding interface
+- Demo frontend (Streamlit) that only consumes HTTP API.
+
+## Directory conventions
+
+- Raw docs: `data/raw/pdf`, `data/raw/ppt`
+- Parsed/chunked intermediates: `data/interim/*`
+- Benchmark data: `data/processed/*`
+- Runtime outputs: `outputs/*`
+
+## Backend API contract
+
+Base URL: `http://127.0.0.1:8000`
+
+- `GET /health`
+- `POST /api/v1/chat`
+  - request:
+    - `query: string`
+    - `context: string[]`
+    - `temperature: float`
+    - `max_tokens: int`
+  - response:
+    - `answer: string`
+    - `citations: [{source_ref, snippet}]`
+    - `model: string`
+- `POST /api/v1/embed/text`
+  - request: `inputs: string[]`
+  - response: `model, vectors`
+- `POST /api/v1/embed/vision`
+  - request: `inputs: string[]`
+  - response: `model, vectors`
+
+This contract is frontend-agnostic and can be consumed by React/Vue/Next.js/mobile clients.
+
+## Quick start
+
+1. Create and activate virtual env:
+```bash
+python -m venv .venv
+# Windows PowerShell
+.\.venv\Scripts\Activate.ps1
+```
+
+2. Install package in editable mode:
+```bash
+pip install -e .
+```
+
+3. Optional env vars (`.env`):
+```env
+OPENAI_API_KEY=your_key
+VLM_BASE_URL=http://localhost:8001/v1
+```
+
+4. Run backend (recommended):
+```bash
+python -m src api
+```
+
+5. Run demo frontend:
+```bash
+python -m src ui
+```
+
+Optional short command after editable install:
+```bash
+mmrag api
+mmrag ui
+```
+
+## Notes
+
+- Current model clients assume OpenAI-compatible server endpoints.
+- You can add new providers by extending `src/models/clients.py` without changing API schemas.
+
+## Dataset preparation
+
+1. Configure download manifest:
+- `configs/dataset_downloads.yaml`
+
+2. Download datasets by script:
+```bash
+python scripts/01_download_datasets.py
+```
+
+Or download directly from Hugging Face datasets:
+```bash
+python scripts/01_download_datasets.py --from-hf
+```
+
+Keep official HF directory layout + export project raw files:
+```bash
+python scripts/01_download_datasets.py --from-hf --hf-official-layout
+```
+
+3. Validate and normalize:
+```bash
+python scripts/01_prepare_datasets.py validate --mode eval
+python scripts/01_prepare_datasets.py prepare --mode eval
+```
+
+See [docs/dataset_prep.md](docs/dataset_prep.md) for details.
+For end-to-end teammate onboarding and deployment steps, see [docs/deployment_init.md](docs/deployment_init.md).
+For OpenAI-compatible LLM/VLM integration steps, see [docs/model_integration_openai_compatible.md](docs/model_integration_openai_compatible.md).

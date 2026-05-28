@@ -1,0 +1,7 @@
+﻿eval:
+  metrics:
+    - recall_at_k
+    - precision_at_k
+    - anls
+    - accuracy
+    - citation_accuracy

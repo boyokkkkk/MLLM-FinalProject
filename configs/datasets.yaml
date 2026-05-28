@@ -1,0 +1,32 @@
+datasets:
+  docvqa:
+    raw_root: data/raw/docvqa
+    processed_root: data/processed/docvqa
+    expected_files:
+      - val.json
+      - test.json
+    eval_required_files:
+      - val.json
+      - test.json
+  chartqa:
+    raw_root: data/raw/chartqa
+    processed_root: data/processed/chartqa
+    expected_files:
+      - train.json
+      - val.json
+      - test.json
+    eval_required_files:
+      - val.json
+      - test.json
+
+normalized_schema:
+  required_fields:
+    - id
+    - dataset
+    - split
+    - question
+    - answers
+  optional_fields:
+    - image
+    - evidence
+    - metadata

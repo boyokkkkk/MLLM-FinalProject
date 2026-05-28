@@ -1,0 +1,38 @@
+﻿downloads:
+  docvqa:
+    enabled: true
+    files:
+      - name: docvqa_train_json
+        url: ""
+        output: data/raw/docvqa/train.json
+        sha256: ""
+        extract: false
+      - name: docvqa_val_json
+        url: ""
+        output: data/raw/docvqa/val.json
+        sha256: ""
+        extract: false
+      - name: docvqa_test_json
+        url: ""
+        output: data/raw/docvqa/test.json
+        sha256: ""
+        extract: false
+
+  chartqa:
+    enabled: true
+    files:
+      - name: chartqa_train_json
+        url: ""
+        output: data/raw/chartqa/train.json
+        sha256: ""
+        extract: false
+      - name: chartqa_val_json
+        url: ""
+        output: data/raw/chartqa/val.json
+        sha256: ""
+        extract: false
+      - name: chartqa_test_json
+        url: ""
+        output: data/raw/chartqa/test.json
+        sha256: ""
+        extract: false

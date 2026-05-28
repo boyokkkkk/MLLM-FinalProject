@@ -1,0 +1,4 @@
+﻿retrieval:
+  top_k_text: 5
+  top_k_vision: 5
+  rerank: false

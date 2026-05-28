@@ -1,0 +1,19 @@
+﻿models:
+  vlm:
+    provider: openai_compatible
+    model: Qwen/Qwen2.5-VL-7B-Instruct
+    base_url: http://localhost:8001/v1
+    api_key_env: OPENAI_API_KEY
+    timeout_s: 120
+  text_embedding:
+    provider: openai_compatible
+    model: Qwen/Qwen3-Embedding-4B
+    base_url: http://localhost:8001/v1
+    api_key_env: OPENAI_API_KEY
+    timeout_s: 60
+  vision_embedding:
+    provider: openai_compatible
+    model: Qwen/Qwen2.5-VL-3B-Instruct
+    base_url: http://localhost:8001/v1
+    api_key_env: OPENAI_API_KEY
+    timeout_s: 60
