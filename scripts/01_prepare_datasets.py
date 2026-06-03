@@ -1,8 +1,9 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import argparse
 import hashlib
 import json
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -39,10 +40,8 @@ def _resolve_image_path(image_obj: Any, image_out_dir: Path, sample_id: str) -> 
     if isinstance(image_obj, dict):
         path_val = image_obj.get("path")
         bytes_val = image_obj.get("bytes")
-        if path_val:
-            return str(path_val)
+        image_out_dir.mkdir(parents=True, exist_ok=True)
         if isinstance(bytes_val, (bytes, bytearray)):
-            image_out_dir.mkdir(parents=True, exist_ok=True)
             payload = bytes(bytes_val)
             digest = hashlib.sha1(payload).hexdigest()[:12]
             ext = _infer_image_ext(payload)
@@ -51,6 +50,14 @@ def _resolve_image_path(image_obj: Any, image_out_dir: Path, sample_id: str) -> 
             if not out.exists():
                 out.write_bytes(payload)
             return str(out)
+        if path_val:
+            src = Path(str(path_val))
+            if src.exists():
+                out = image_out_dir / src.name
+                if not out.exists():
+                    shutil.copy2(src, out)
+                return str(out)
+            return str(path_val)
         return None
 
     # datasets.load_from_disk may decode image columns to PIL image objects.
@@ -97,10 +104,25 @@ def _pick_first(d: dict[str, Any], keys: list[str], default: Any = None) -> Any:
 
 
 def _normalize_record(dataset: str, split: str, record: dict[str, Any], idx: int) -> dict[str, Any]:
-    qid = _pick_first(record, ["id", "question_id", "qid", "sample_id"], default=f"{dataset}-{split}-{idx}")
+    qid = _pick_first(record, ["id", "question_id", "qid", "sample_id", "questionId"], default=f"{dataset}-{split}-{idx}")
     question = _pick_first(record, ["question", "query", "prompt"], default="")
     answers = _ensure_list(_pick_first(record, ["answers", "answer", "label"], default=[]))
     image = _pick_first(record, ["image", "image_path", "img", "img_path"], default=None)
+
+    preserved_keys = [
+        "questionId",
+        "question_id",
+        "docId",
+        "ucsf_document_id",
+        "ucsf_document_page_no",
+        "question_types",
+        "data_split",
+        "human_or_machine",
+    ]
+    metadata = {"raw_keys": sorted(list(record.keys()))}
+    for key in preserved_keys:
+        if key in record:
+            metadata[key] = record[key]
 
     normalized = {
         "id": str(qid),
@@ -110,14 +132,12 @@ def _normalize_record(dataset: str, split: str, record: dict[str, Any], idx: int
         "answers": answers,
         "image": image,
         "evidence": _pick_first(record, ["evidence", "context", "ocr"], default=None),
-        "metadata": {
-            "raw_keys": sorted(list(record.keys())),
-        },
+        "metadata": metadata,
     }
     return normalized
 
 
-def _normalize_split(spec: DatasetSpec, split: str) -> tuple[int, int]:
+def _normalize_split(spec: DatasetSpec, split: str, limit: int | None = None) -> tuple[int, int]:
     src_json = spec.raw_root / f"{split}.json"
     src_jsonl = spec.raw_root / f"{split}.jsonl"
     if src_json.exists():
@@ -141,6 +161,8 @@ def _normalize_split(spec: DatasetSpec, split: str) -> tuple[int, int]:
         raise ValueError(f"Unsupported JSON format for {src}. Expected a list or dict containing a list.")
 
     total = len(data)
+    if limit is not None:
+        data = data[:limit]
     kept = 0
     with dst.open("w", encoding="utf-8") as f:
         for idx, item in enumerate(data):
@@ -162,6 +184,7 @@ def _normalize_split_from_hf(
     image_export_root: Path,
     show_progress: bool = False,
     progress_every: int = 500,
+    limit: int | None = None,
 ) -> tuple[int, int]:
     from datasets import load_from_disk
 
@@ -182,6 +205,8 @@ def _normalize_split_from_hf(
     dst = dst_dir / f"{split}.jsonl"
 
     total = len(ds)
+    if limit is not None:
+        ds = ds.select(range(min(limit, total)))
     kept = 0
     image_out_dir = image_export_root / spec.name / split
     iterator = ds
@@ -271,6 +296,7 @@ def cmd_prepare(
     dataset_names: list[str] | None = None,
     show_progress: bool = False,
     progress_every: int = 500,
+    limit_per_split: int | None = None,
 ) -> int:
     specs = build_specs(project_root)
     if dataset_names:
@@ -292,9 +318,10 @@ def cmd_prepare(
                     image_export_root,
                     show_progress=show_progress,
                     progress_every=progress_every,
+                    limit=limit_per_split,
                 )
             else:
-                total, kept = _normalize_split(spec, split)
+                total, kept = _normalize_split(spec, split, limit=limit_per_split)
             print(f"  - {split}: total={total}, kept={kept}, out={spec.processed_root / (split + '.jsonl')}")
     print("[prepare] done")
     return 0
@@ -344,6 +371,12 @@ def parse_args() -> argparse.Namespace:
         default=500,
         help="When --show-progress is on, print fallback progress every N samples.",
     )
+    parser.add_argument(
+        "--limit-per-split",
+        type=int,
+        default=0,
+        help="Optional cap per dataset split for smoke runs; 0 means all.",
+    )
     return parser.parse_args()
 
 
@@ -362,6 +395,7 @@ def main() -> int:
             dataset_names=[x.strip() for x in str(args.datasets).split(",") if x.strip()],
             show_progress=bool(args.show_progress),
             progress_every=int(args.progress_every),
+            limit_per_split=int(args.limit_per_split) or None,
         )
     return 1
 

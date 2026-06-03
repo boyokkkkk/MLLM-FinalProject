@@ -1,4 +1,4 @@
-﻿# Multimodal Doc RAG
+# Multimodal Doc RAG
 
 A minimal but extensible project skeleton for multimodal document QA.
 
@@ -111,5 +111,24 @@ python scripts/01_prepare_datasets.py prepare --mode eval
 ```
 
 See [docs/dataset_prep.md](docs/dataset_prep.md) for details.
+
+## Offline data and index pipeline
+
+Build document chunks and local indexes from the normalized benchmark records:
+
+```bash
+python scripts/07_parse_and_chunk.py --datasets docvqa,chartqa --splits val,test
+python scripts/08_build_indexes.py
+python scripts/09_query_indexes.py "actual value per 1000 during 1975" --top-k 3
+```
+
+Quick smoke run on one or two samples per split:
+
+```bash
+python scripts/10_run_data_index_pipeline.py --skip-download --prepare-from-hf-cache --limit-per-split 2 --run-mllm-smoke --mllm-dry-run --mllm-num-samples 2
+```
+
+See [docs/data_indexing.md](docs/data_indexing.md) for schema, MinerU JSON handoff, index manifest, and query output details.
+
 For end-to-end teammate onboarding and deployment steps, see [docs/deployment_init.md](docs/deployment_init.md).
 For OpenAI-compatible LLM/VLM integration steps, see [docs/model_integration_openai_compatible.md](docs/model_integration_openai_compatible.md).
