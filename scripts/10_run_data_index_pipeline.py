@@ -32,6 +32,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mllm-num-samples", type=int, default=2, help="Number of MLLM smoke samples.")
     parser.add_argument("--run-mineru", action="store_true", help="Run MinerU before parse/chunk so chunks use MinerU blocks.")
     parser.add_argument("--mineru-mock", action="store_true", help="Generate MinerU-compatible mock blocks without invoking MinerU.")
+    parser.add_argument("--mineru-model-source", default="modelscope", choices=["modelscope", "huggingface", "local"], help="MinerU model source.")
     return parser.parse_args()
 
 
@@ -57,6 +58,7 @@ def main() -> int:
     mineru_cmd = [py, "scripts/06_run_mineru.py", "--datasets", args.datasets, "--splits", args.splits]
     if args.limit_per_split:
         mineru_cmd.extend(["--limit-per-split", str(args.limit_per_split)])
+    mineru_cmd.extend(["--mineru-model-source", args.mineru_model_source])
     if args.mineru_mock:
         mineru_cmd.append("--mock")
     run_step(mineru_cmd, project_root, skip=not args.run_mineru)

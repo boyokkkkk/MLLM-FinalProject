@@ -177,4 +177,16 @@ python scripts/10_run_data_index_pipeline.py --skip-download --prepare-from-hf-c
 python scripts/10_run_data_index_pipeline.py --skip-download --prepare-from-hf-cache --limit-per-split 1 --run-mineru --mineru-mock --run-mllm-smoke --mllm-dry-run --mllm-num-samples 1
 ```
 
-真实 MinerU 首次运行会下载 `opendatalab/PDF-Extract-Kit-1.0` 等模型权重。若 Hugging Face 连接失败，需要提前准备模型缓存，或配置可访问的模型下载源/镜像。
+真实 MinerU 首次运行会下载 `OpenDataLab/PDF-Extract-Kit-1.0` 等模型权重。国内环境推荐先用 ModelScope 下载：
+
+```bash
+python scripts/00_download_mineru_models.py
+```
+
+运行 MinerU 时默认会设置 `MINERU_MODEL_SOURCE=modelscope`：
+
+```bash
+python scripts/06_run_mineru.py --datasets docvqa --splits val --limit-per-split 1 --backend pipeline --mineru-model-source modelscope
+```
+
+也可以在 `.env` 或 shell 环境中设置 `MINERU_MODEL_SOURCE=modelscope`。

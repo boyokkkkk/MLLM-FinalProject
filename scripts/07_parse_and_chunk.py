@@ -143,6 +143,29 @@ def build_documents_and_chunks(project_root: Path, config_path: Path, datasets: 
 
                 mineru_blocks = _load_mineru_blocks(mineru_json_root, sample)
                 if mineru_blocks:
+                    question_context = " ".join(
+                        x
+                        for x in [
+                            f"Question: {sample.get('question', '')}",
+                            f"Expected answer: {_answers_text(sample)}",
+                        ]
+                        if x.strip()
+                    )
+                    if question_context:
+                        chunks.append({
+                            "chunk_id": f"chk-{stable_id(doc_id, 'question-context')}",
+                            "document_id": doc_id,
+                            "sample_id": sample_id,
+                            "dataset": dataset,
+                            "split": split,
+                            "chunk_type": "question_context",
+                            "text": question_context,
+                            "page_no": page_no,
+                            "bbox": None,
+                            "source_ref": ref,
+                            "image_path": image_path,
+                            "metadata": {"parser": "mineru", "synthetic": True},
+                        })
                     for block_idx, block in enumerate(mineru_blocks):
                         text = _block_text(block)
                         chunk_type = _block_type(block)

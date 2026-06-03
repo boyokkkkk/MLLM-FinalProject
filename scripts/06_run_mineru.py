@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -153,6 +154,7 @@ def run_mineru_on_sample(
     backend: str,
     method: str,
     mock: bool,
+    mineru_model_source: str,
 ) -> dict[str, Any]:
     dataset = str(sample.get("dataset", "unknown"))
     split = str(sample.get("split", "unknown"))
@@ -179,8 +181,12 @@ def run_mineru_on_sample(
             cmd.extend(["-b", backend])
         elif method:
             cmd.extend(["-m", method])
+        env = os.environ.copy()
+        if mineru_model_source:
+            env["MINERU_MODEL_SOURCE"] = mineru_model_source
         print(f"[mineru] {' '.join(cmd)}")
-        subprocess.run(cmd, cwd=str(project_root), check=True)
+        print(f"[mineru] MINERU_MODEL_SOURCE={env.get('MINERU_MODEL_SOURCE', '')}")
+        subprocess.run(cmd, cwd=str(project_root), check=True, env=env)
         blocks, raw_files = _extract_blocks_from_mineru_output(raw_output_dir, page_no)
         if not blocks:
             raise RuntimeError(f"MinerU finished but no parseable blocks were found under {raw_output_dir}")
@@ -209,6 +215,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--backend", default="pipeline", help="MinerU backend, e.g. pipeline.")
     parser.add_argument("--method", default="auto", help="magic-pdf method fallback: auto/ocr/txt.")
     parser.add_argument("--mock", action="store_true", help="Write MinerU-compatible mock blocks without invoking MinerU.")
+    parser.add_argument(
+        "--mineru-model-source",
+        default=os.getenv("MINERU_MODEL_SOURCE", "modelscope"),
+        choices=["modelscope", "huggingface", "local"],
+        help="MinerU model source. ModelScope is recommended in China.",
+    )
     return parser.parse_args()
 
 
@@ -227,7 +239,16 @@ def main() -> int:
                 image_path = _resolve_local_path(project_root, dataset, split, sample.get("image"))
                 if image_path is None:
                     continue
-                run_mineru_on_sample(project_root, sample, image_path, output_root, args.backend, args.method, args.mock)
+                run_mineru_on_sample(
+                    project_root,
+                    sample,
+                    image_path,
+                    output_root,
+                    args.backend,
+                    args.method,
+                    args.mock,
+                    args.mineru_model_source,
+                )
                 kept += 1
                 total += 1
                 if args.limit_per_split and kept >= args.limit_per_split:
