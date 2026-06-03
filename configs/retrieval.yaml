@@ -1,4 +1,12 @@
-﻿retrieval:
+retrieval:
+  enable_text_retrieval: true
   top_k_text: 5
   top_k_vision: 5
+  score_threshold: 0.0
   rerank: false
+  index_path: "data/processed/retrieval/text_vectors.npy"
+  metadata_path: "data/processed/retrieval/text_chunks.jsonl"
+  context_max_chars: 1200
+  fallback_to_request_context: true
+  default_temperature: 0.2
+  default_max_tokens: 512

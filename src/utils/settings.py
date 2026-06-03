@@ -1,8 +1,14 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
+from functools import cached_property
 from pathlib import Path
+
+import yaml
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+RETRIEVAL_CONFIG_FILE = PROJECT_ROOT / "configs" / "retrieval.yaml"
 
 
 class ModelEndpointConfig(BaseModel):
@@ -11,6 +17,37 @@ class ModelEndpointConfig(BaseModel):
     base_url: str
     api_key_env: str = Field(default="OPENAI_API_KEY")
     timeout_s: int = 60
+
+
+class RetrievalConfig(BaseModel):
+    enable_text_retrieval: bool = True
+    top_k_text: int = 5
+    top_k_vision: int = 5
+    score_threshold: float = 0.0
+    rerank: bool = False
+    index_path: Path = Field(default=Path("data/processed/retrieval/text_vectors.npy"))
+    metadata_path: Path = Field(default=Path("data/processed/retrieval/text_chunks.jsonl"))
+    context_max_chars: int = 4000
+    fallback_to_request_context: bool = True
+    default_temperature: float = 0.2
+    default_max_tokens: int = 512
+
+
+def _resolve_project_path(path: Path | str) -> Path:
+    candidate = Path(path)
+    if candidate.is_absolute():
+        return candidate
+    return (PROJECT_ROOT / candidate).resolve()
+
+
+def _load_yaml(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    with path.open("r", encoding="utf-8") as file:
+        data = yaml.safe_load(file) or {}
+    if not isinstance(data, dict):
+        raise ValueError(f"Expected mapping in config file: {path}")
+    return data
 
 
 class AppSettings(BaseSettings):
@@ -72,6 +109,17 @@ class AppSettings(BaseSettings):
             base_url=self.vision_emb_base_url,
             api_key_env=self.vision_emb_api_key_env,
             timeout_s=self.vision_emb_timeout_s,
+        )
+
+    @cached_property
+    def retrieval(self) -> RetrievalConfig:
+        raw_config = _load_yaml(RETRIEVAL_CONFIG_FILE).get("retrieval", {})
+        config = RetrievalConfig(**raw_config)
+        return config.model_copy(
+            update={
+                "index_path": _resolve_project_path(config.index_path),
+                "metadata_path": _resolve_project_path(config.metadata_path),
+            }
         )
 
 
