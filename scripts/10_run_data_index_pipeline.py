@@ -30,6 +30,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--run-mllm-smoke", action="store_true", help="Call the configured MLLM on a few random local image QA samples.")
     parser.add_argument("--mllm-dry-run", action="store_true", help="Select samples for MLLM smoke test without calling the API.")
     parser.add_argument("--mllm-num-samples", type=int, default=2, help="Number of MLLM smoke samples.")
+    parser.add_argument("--run-mineru", action="store_true", help="Run MinerU before parse/chunk so chunks use MinerU blocks.")
+    parser.add_argument("--mineru-mock", action="store_true", help="Generate MinerU-compatible mock blocks without invoking MinerU.")
     return parser.parse_args()
 
 
@@ -51,6 +53,13 @@ def main() -> int:
     if args.prepare_from_hf_cache:
         prepare_cmd.extend(["--from-hf-cache", "--image-export-root", args.image_export_root])
     run_step(prepare_cmd, project_root, skip=args.skip_prepare)
+
+    mineru_cmd = [py, "scripts/06_run_mineru.py", "--datasets", args.datasets, "--splits", args.splits]
+    if args.limit_per_split:
+        mineru_cmd.extend(["--limit-per-split", str(args.limit_per_split)])
+    if args.mineru_mock:
+        mineru_cmd.append("--mock")
+    run_step(mineru_cmd, project_root, skip=not args.run_mineru)
 
     parse_cmd = [py, "scripts/07_parse_and_chunk.py", "--datasets", args.datasets, "--splits", args.splits]
     if args.limit_per_split:

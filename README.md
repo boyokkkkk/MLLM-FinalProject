@@ -126,6 +126,9 @@ Quick smoke run on one or two samples per split:
 
 ```bash
 python scripts/10_run_data_index_pipeline.py --skip-download --prepare-from-hf-cache --limit-per-split 2 --run-mllm-smoke --mllm-dry-run --mllm-num-samples 2
+
+# Run MinerU before chunking; use --mineru-mock for schema-only smoke tests.
+python scripts/10_run_data_index_pipeline.py --skip-download --prepare-from-hf-cache --limit-per-split 1 --run-mineru --mineru-mock --run-mllm-smoke --mllm-dry-run --mllm-num-samples 1
 ```
 
 See [docs/data_indexing.md](docs/data_indexing.md) for schema, MinerU JSON handoff, index manifest, and query output details.

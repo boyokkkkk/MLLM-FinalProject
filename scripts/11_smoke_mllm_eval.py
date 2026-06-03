@@ -68,6 +68,7 @@ def collect_candidates(project_root: Path, datasets: list[str], splits: list[str
 def call_mllm(model: str, base_url: str, sample: dict[str, Any]) -> str:
     from openai import OpenAI
 
+    # In this project .env may store the DashScope-compatible key as OPENAI_API_KEY.
     api_key = os.getenv("DASHSCOPE_API_KEY") or os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError("Missing DASHSCOPE_API_KEY or OPENAI_API_KEY in environment/.env")
