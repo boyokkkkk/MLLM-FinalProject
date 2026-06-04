@@ -181,13 +181,13 @@ python scripts/06_run_mineru.py \
 ```json
 {
   "document_id": "doc-11394522457e1392",
-  "sample_id": "2511.05491v1",
+  "sample_id": "aaav1",
   "dataset": "raw_pdf",
   "split": "raw",
   "source_path": "~/MLLM-FinalProject/data/raw/aaa.pdf",
   "source_type": "pdf",
-  "raw_output_dir": "~/MLLM-FinalProject/data/interim/mineru_raw/raw_pdf/raw/2511.05491v1",
-  "raw_files": ["~/MLLM-FinalProject/2511.05491v1_content_list.json"],
+  "raw_output_dir": "~/MLLM-FinalProject/data/interim/mineru_raw/raw_pdf/raw/aaav1",
+  "raw_files": ["~/MLLM-FinalProject/aaav1_content_list.json"],
   "metadata": {"input_mode": "raw_document", "source_suffix": ".pdf"},
   "blocks": [
     {
@@ -253,7 +253,7 @@ python scripts/07_parse_and_chunk.py \
 输入：
 
 ```text
-data/interim/mineru/raw_pdf/2511.05491v1.json
+data/interim/mineru/raw_pdf/aaav1.json
 ```
 
 输出：
@@ -268,7 +268,7 @@ data/processed/chunks/chunks.jsonl
 ```json
 {
   "document_id": "doc-11394522457e1392",
-  "sample_id": "2511.05491v1",
+  "sample_id": "aaav1",
   "dataset": "raw_pdf",
   "split": "raw",
   "source_type": "pdf",
@@ -280,7 +280,7 @@ data/processed/chunks/chunks.jsonl
   "answers": [],
   "metadata": {
     "parser": "mineru",
-    "raw_output_dir": "~/MLLM-FinalProject/data/interim/mineru_raw/raw_pdf/raw/2511.05491v1",
+    "raw_output_dir": "~/MLLM-FinalProject/data/interim/mineru_raw/raw_pdf/raw/aaav1",
     "source_name": "aaa.pdf"
   }
 }
@@ -292,7 +292,7 @@ data/processed/chunks/chunks.jsonl
 {
   "chunk_id": "chk-d486207acde6455f",
   "document_id": "doc-11394522457e1392",
-  "sample_id": "2511.05491v1",
+  "sample_id": "aaav1",
   "dataset": "raw_pdf",
   "split": "raw",
   "block_id": "block-0000",
@@ -302,7 +302,7 @@ data/processed/chunks/chunks.jsonl
   "text": "Visual Spatial Tuning",
   "page_no": 1,
   "bbox": [349, 127, 647, 154],
-  "source_ref": "raw_pdf/raw/2511.05491v1#page=1#block=block-0000",
+  "source_ref": "raw_pdf/raw/aaav1#page=1#block=block-0000",
   "source_path": "~/MLLM-FinalProject/data/raw/aaa.pdf",
   "image_path": null,
   "metadata": {"parser": "mineru", "block_index": 0, "raw_index": 0, "raw_type": "text"}
