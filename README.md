@@ -27,12 +27,12 @@ Base URL: `http://127.0.0.1:8000`
 - `POST /api/v1/chat`
   - request:
     - `query: string`
-    - `context: string[]`
-    - `temperature: float`
-    - `max_tokens: int`
+    - `context: string[]` (optional fallback/debug context)
+    - `temperature: float | null`
+    - `max_tokens: int | null`
   - response:
     - `answer: string`
-    - `citations: [{source_ref, snippet}]`
+    - `citations: [{chunk_id, source, page, snippet, source_ref?}]`
     - `model: string`
 - `POST /api/v1/embed/text`
   - request: `inputs: string[]`
@@ -77,6 +77,18 @@ Optional short command after editable install:
 ```bash
 mmrag api
 mmrag ui
+```
+
+## Local smoke test for retrieval
+
+Build mock retrieval chunks and vectors from local project docs:
+```bash
+.\.venv\Scripts\python.exe scripts/07_build_mock_retrieval_data.py
+```
+
+Run retrieval + chat smoke validation:
+```bash
+.\.venv\Scripts\python.exe scripts/08_smoke_test_text_retrieval.py
 ```
 
 ## Notes

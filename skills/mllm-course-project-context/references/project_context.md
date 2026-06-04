@@ -37,7 +37,7 @@
 - Multimodal RAG improves key metrics over text-only baseline (target +10% as proposal ambition).
 - Semantic chunking improves retrieval recall (target +5% as proposal ambition).
 
-## 3. Current Implementation Status (as of 2026-05-28)
+## 3. Current Implementation Status (as of 2026-06-03)
 
 ### 3.1 Completed
 
@@ -50,27 +50,54 @@
   - `POST /api/v1/embed/vision`
 - OpenAI-compatible model clients implemented:
   - chat + embedding wrappers in `src/models/clients.py`.
+- Text-retrieval closed loop is now wired into backend chat:
+  - `/api/v1/chat` runs `query -> retrieve -> generate`.
+  - retrieval uses `src/models/retrieval.py` + `src/serving/deps.py`.
+  - chat returns real citation fields: `chunk_id`, `source`, `page`, `snippet`.
+- Retrieval/generation config is now wired:
+  - `configs/retrieval.yaml` is loaded by `src/utils/settings.py`.
+  - configurable fields include `top_k_text`, `score_threshold`, `index_path`, `metadata_path`,
+    `context_max_chars`, `default_temperature`, and `default_max_tokens`.
 - Streamlit demo available:
   - text input, optional images, optional text/file context.
+- Frontend remains compatible with new backend response because `source_ref` is temporarily preserved.
 - Dataset pipeline available:
   - HF download/export scripts.
   - normalization to processed JSONL.
   - health check and cleaning scripts.
 - Team SOP/docs already drafted in repo (`docs/*.md`, top-level Chinese planning files).
+- Local mock retrieval dataset + smoke test are available for member-B independent validation:
+  - mock metadata: `data/processed/retrieval/text_chunks.jsonl`
+  - mock vectors: `data/processed/retrieval/text_vectors.npy`
+  - scripts:
+    - `scripts/07_build_mock_retrieval_data.py`
+    - `scripts/08_smoke_test_text_retrieval.py`
 
 ### 3.2 Partially completed / placeholder level
 
 - `embed/vision` endpoint exists but does not yet reflect a full visual retrieval pipeline.
-- citation returned by chat is context-slot based (`ctx-i`) rather than true page/figure grounding.
-- retrieval config exists (`configs/retrieval.yaml`) but no full retrieval orchestration is wired into chat flow.
+- frontend citation display is still old-style (`source_ref + snippet`) and has not yet been upgraded
+  to show `chunk_id/source/page` cleanly.
+- current closed loop works against prebuilt/mock index data, not yet against user-uploaded files.
 
 ### 3.3 Not completed yet (main gap)
 
 - MinerU/PaddleOCR structure-aware parser integration.
 - semantic chunk builder preserving layout semantics.
+- online file-to-index pipeline:
+  - uploaded file -> parse -> chunk -> embed -> index -> retrieve.
 - vector-store orchestration for production dual-index retrieval (text + visual).
 - dual-path retrieval + late-fusion reasoning flow.
 - full benchmark runner for Recall/Precision/ANLS/citation accuracy and error taxonomy.
+- real A/B/C end-to-end contract validation on member-A produced chunk/index artifacts.
+
+### 3.4 Current practical boundary (important)
+
+- The repo can now demo text-RAG over an already indexed corpus.
+- The repo cannot yet automatically turn newly uploaded frontend files into retrievable chunks.
+- Therefore:
+  - “existing indexed knowledge base QA” is available,
+  - “ad hoc user-upload document indexing” is not yet available.
 
 ## 4. 3-Week Execution Blueprint (recommended)
 
@@ -83,6 +110,11 @@
   - baseline benchmark runner (small subset first).
 - Exit criteria:
   - demo can answer from indexed corpus without manual context paste.
+
+Status update as of 2026-06-03:
+
+- Member-B side of Week 1 is effectively completed with mock/prebuilt index data.
+- Remaining Week-1 dependency is member-A’s real parser/chunk/index output for formal integration.
 
 ## Week 2: Multimodal Upgrade
 
@@ -121,6 +153,10 @@
   - dataset validation script pass
   - core endpoint smoke test pass
   - metric report updated for experiment branches
+
+Current evidence that this gate is partially satisfied:
+
+- core endpoint smoke test for text retrieval path now exists and passes locally on mock data.
 
 ## 7. Risk Register and Countermeasures
 

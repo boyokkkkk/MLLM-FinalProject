@@ -1,8 +1,9 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from functools import lru_cache
 
 from src.models.clients import BaseEmbeddingClient, BaseLLMClient, build_embedding_client, build_llm_client
+from src.models.retrieval import BaseTextRetriever, LocalTextRetriever
 from src.utils.settings import settings
 
 
@@ -19,3 +20,11 @@ def get_text_embedding_client() -> BaseEmbeddingClient:
 @lru_cache(maxsize=1)
 def get_vision_embedding_client() -> BaseEmbeddingClient:
     return build_embedding_client(settings.vision_embedding)
+
+
+@lru_cache(maxsize=1)
+def get_text_retriever() -> BaseTextRetriever:
+    return LocalTextRetriever(
+        embedding_client=get_text_embedding_client(),
+        config=settings.retrieval,
+    )
