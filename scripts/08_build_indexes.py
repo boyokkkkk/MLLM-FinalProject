@@ -56,11 +56,15 @@ def build_indexes(project_root: Path, config_path: Path) -> dict[str, Any]:
             "sample_id": chunk.get("sample_id"),
             "dataset": chunk.get("dataset"),
             "split": chunk.get("split"),
+            "block_id": chunk.get("block_id"),
+            "block_index": chunk.get("block_index"),
+            "part_index": chunk.get("part_index"),
             "chunk_type": chunk.get("chunk_type"),
             "text": chunk.get("text", ""),
             "page_no": chunk.get("page_no"),
             "bbox": chunk.get("bbox"),
             "source_ref": chunk.get("source_ref"),
+            "source_path": chunk.get("source_path"),
             "image_path": chunk.get("image_path"),
             "metadata": chunk.get("metadata", {}),
             "tf": tf,
@@ -69,14 +73,18 @@ def build_indexes(project_root: Path, config_path: Path) -> dict[str, Any]:
         for term, freq in tf.items():
             postings[term].append({"chunk_id": chunk_id, "tf": freq})
         document_frequency.update(tf.keys())
-        if chunk.get("chunk_type") in {"figure", "page_image", "table"} or chunk.get("image_path"):
+        if chunk.get("chunk_type") in {"figure", "page_image", "table", "formula"} or chunk.get("image_path"):
             visual_items.append({
                 "chunk_id": chunk_id,
                 "document_id": chunk.get("document_id"),
                 "sample_id": chunk.get("sample_id"),
                 "dataset": chunk.get("dataset"),
                 "split": chunk.get("split"),
+                "block_id": chunk.get("block_id"),
+                "block_index": chunk.get("block_index"),
+                "part_index": chunk.get("part_index"),
                 "chunk_type": chunk.get("chunk_type"),
+                "source_path": chunk.get("source_path"),
                 "image_path": chunk.get("image_path"),
                 "page_no": chunk.get("page_no"),
                 "bbox": chunk.get("bbox"),
@@ -110,8 +118,9 @@ def build_indexes(project_root: Path, config_path: Path) -> dict[str, Any]:
             "visual_items": len(visual_items),
         },
         "notes": [
-            "Text index uses local tokenization and sparse term frequencies.",
-            "Vision index is a metadata store for image/table/figure chunks; embedding backends can replace it later.",
+            "Text index uses local tokenization and sparse term frequencies over block chunks.",
+            "Vision index is a metadata store for image/table/figure/formula chunks; embedding backends can replace it later.",
+            "Vector databases should store embeddings keyed by chunk_id and keep block_id/page_no/bbox/source_path for backtracking.",
         ],
     }
     write_json(manifest_path, manifest)
