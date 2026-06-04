@@ -15,6 +15,20 @@ TEXT = {
         "placeholder": "Ask anything about your course documents...",
         "thinking": "Thinking...",
         "sources": "Sources",
+        "current_document": "Current Document",
+
+        "uploaded_files": "Uploaded Files",
+        "no_document": "No Document Uploaded",
+
+        "retrieved_evidence": "Retrieved Evidence",
+
+        "new_chat": "New Chat",
+        "chat_history": "Chat History",
+
+        "clear_chat": "Clear Chat",
+
+        "documents_title": "Document Archive",
+        "benchmark_title": "Benchmark Center",
     },
 
     "中文": {
@@ -33,5 +47,19 @@ TEXT = {
         "placeholder": "请输入关于课程文档的问题...",
         "thinking": "思考中...",
         "sources": "引用来源",
+
+        "current_document": "当前文档",
+        "uploaded_files": "已上传文档",
+        "no_document": "尚未上传文档",
+
+        "retrieved_evidence": "检索证据",
+
+        "new_chat": "新建会话",
+        "chat_history": "历史会话",
+
+        "clear_chat": "清空会话",
+
+        "documents_title": "文档管理",
+        "benchmark_title": "评测中心",
     }
 }

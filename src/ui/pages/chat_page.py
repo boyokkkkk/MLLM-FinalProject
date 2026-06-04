@@ -1,10 +1,12 @@
 import streamlit as st
 
 from services.api_client import APIClient
+
 from components.chat_window import (
     render_chat_history,
     add_user_message,
     add_assistant_message,
+    clear_current_chat,
 )
 
 from utils.locales import TEXT
@@ -21,7 +23,6 @@ def build_system_prompt():
 
         prompt += """
 Please answer entirely in Simplified Chinese.
-Keep technical terms accurate.
 """
 
     else:
@@ -46,7 +47,6 @@ Provide detailed explanations.
 
         prompt += """
 Provide academic and formal explanations.
-Use precise terminology.
 """
 
     return prompt
@@ -57,9 +57,26 @@ def render_chat_page():
     lang = st.session_state.language
     ui = TEXT[lang]
 
-    st.title(ui["title"])
+    # ===== 顶部会话栏 =====
 
-    st.caption(ui["subtitle"])
+    col1, col2 = st.columns([8, 1])
+
+    with col1:
+
+        st.subheader(
+            st.session_state.active_chat
+        )
+
+    with col2:
+
+        if st.button(
+            "🗑",
+            help=ui["clear_chat"]
+        ):
+
+            clear_current_chat()
+
+            st.rerun()
 
     st.divider()
 
@@ -70,11 +87,13 @@ def render_chat_page():
     )
 
     if not prompt:
+
         return
 
     add_user_message(prompt)
 
     with st.chat_message("user"):
+
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
@@ -105,34 +124,24 @@ User Question:
                     "No answer returned."
                 )
 
-                st.markdown(answer)
+            except Exception:
 
-                citations = result.get(
-                    "citations",
-                    []
-                )
+                if lang == "中文":
 
-                if citations:
+                    answer = """
+当前处于 Demo 模式。
 
-                    st.divider()
+后端接口尚未接入。
+"""
 
-                    st.markdown(
-                        f"##### {ui['sources']}"
-                    )
+                else:
 
-                    for item in citations:
+                    answer = """
+Demo Mode.
 
-                        st.info(
-                            f"{item['source_ref']}\n\n"
-                            f"{item['snippet']}"
-                        )
+Backend API not connected yet.
+"""
 
-                add_assistant_message(answer)
+            st.markdown(answer)
 
-            except Exception as e:
-
-                error_msg = f"Error:\n\n{str(e)}"
-
-                st.error(error_msg)
-
-                add_assistant_message(error_msg)
+            add_assistant_message(answer)
