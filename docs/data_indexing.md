@@ -95,7 +95,7 @@ data/images/docvqa/val/49153.png
   "split": "val",
   "question": "What is the ‘actual’ value per 1000, during the year 1975?",
   "answers": ["0.28"],
-  "image": "/home/wuchenghui/MLLM-FinalProject/data/images/docvqa/val/49153.png",
+  "image": "~/MLLM-FinalProject/data/images/docvqa/val/49153.png",
   "evidence": null,
   "metadata": {
     "questionId": "49153",
@@ -156,7 +156,7 @@ data/interim/mineru/docvqa/49153.json        # 项目归一化 MinerU JSON
 
 ```bash
 python scripts/06_run_mineru.py \
-  --input-path data/raw/2511.05491v1.pdf \
+  --input-path data/raw/aaa.pdf \
   --datasets raw_pdf \
   --splits raw \
   --limit-per-split 1 \
@@ -184,10 +184,10 @@ python scripts/06_run_mineru.py \
   "sample_id": "2511.05491v1",
   "dataset": "raw_pdf",
   "split": "raw",
-  "source_path": "/home/wuchenghui/MLLM-FinalProject/data/raw/2511.05491v1.pdf",
+  "source_path": "~/MLLM-FinalProject/data/raw/aaa.pdf",
   "source_type": "pdf",
-  "raw_output_dir": "/home/.../data/interim/mineru_raw/raw_pdf/raw/2511.05491v1",
-  "raw_files": ["/home/.../2511.05491v1_content_list.json"],
+  "raw_output_dir": "~/MLLM-FinalProject/data/interim/mineru_raw/raw_pdf/raw/2511.05491v1",
+  "raw_files": ["~/MLLM-FinalProject/2511.05491v1_content_list.json"],
   "metadata": {"input_mode": "raw_document", "source_suffix": ".pdf"},
   "blocks": [
     {
@@ -272,7 +272,7 @@ data/processed/chunks/chunks.jsonl
   "dataset": "raw_pdf",
   "split": "raw",
   "source_type": "pdf",
-  "source_path": "/home/wuchenghui/MLLM-FinalProject/data/raw/2511.05491v1.pdf",
+  "source_path": "~/MLLM-FinalProject/data/raw/aaa.pdf",
   "image_path": null,
   "page_no": 1,
   "page_count": 1,
@@ -280,8 +280,8 @@ data/processed/chunks/chunks.jsonl
   "answers": [],
   "metadata": {
     "parser": "mineru",
-    "raw_output_dir": "/home/.../data/interim/mineru_raw/raw_pdf/raw/2511.05491v1",
-    "source_name": "2511.05491v1.pdf"
+    "raw_output_dir": "~/MLLM-FinalProject/data/interim/mineru_raw/raw_pdf/raw/2511.05491v1",
+    "source_name": "aaa.pdf"
   }
 }
 ```
@@ -303,7 +303,7 @@ data/processed/chunks/chunks.jsonl
   "page_no": 1,
   "bbox": [349, 127, 647, 154],
   "source_ref": "raw_pdf/raw/2511.05491v1#page=1#block=block-0000",
-  "source_path": "/home/wuchenghui/MLLM-FinalProject/data/raw/2511.05491v1.pdf",
+  "source_path": "~/MLLM-FinalProject/data/raw/aaa.pdf",
   "image_path": null,
   "metadata": {"parser": "mineru", "block_index": 0, "raw_index": 0, "raw_type": "text"}
 }
@@ -395,11 +395,11 @@ query
 
 ## 已验证的 raw PDF 烟测
 
-本地已用 `data/raw/2511.05491v1.pdf` 跑通第 1 页：
+本地已用 `data/raw/aaa.pdf` 跑通第 1 页：
 
 ```bash
 python scripts/06_run_mineru.py \
-  --input-path data/raw/2511.05491v1.pdf \
+  --input-path data/raw/aaa.pdf \
   --datasets raw_pdf \
   --splits raw \
   --limit-per-split 1 \
