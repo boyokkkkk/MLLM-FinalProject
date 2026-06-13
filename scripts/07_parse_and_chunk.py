@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -142,6 +143,20 @@ def _chunk_source_ref(dataset: str, split: str, sample_id: str, page_no: int, bl
     return f"{base}#block={block_id}"
 
 
+def _merged_chunk_metadata(
+    sample_metadata: dict[str, Any] | None,
+    block_idx: int,
+    block_metadata: dict[str, Any] | None,
+) -> dict[str, Any]:
+    merged: dict[str, Any] = {}
+    if isinstance(sample_metadata, dict):
+        merged.update(sample_metadata)
+    merged.update({"parser": "mineru", "block_index": block_idx})
+    if isinstance(block_metadata, dict):
+        merged.update(block_metadata)
+    return merged
+
+
 def _append_block_chunks(
     chunks: list[dict[str, Any]],
     *,
@@ -156,6 +171,7 @@ def _append_block_chunks(
     blocks: list[dict[str, Any]],
     max_chars: int,
     overlap: int,
+    sample_metadata: dict[str, Any] | None = None,
 ) -> None:
     for block_idx, block in enumerate(blocks):
         text = _block_text(block)
@@ -187,7 +203,11 @@ def _append_block_chunks(
                 "source_ref": _chunk_source_ref(dataset, split, sample_id, page_no, block_id, figure_id),
                 "source_path": source_path,
                 "image_path": final_image_path,
-                "metadata": {"parser": "mineru", "block_index": block_idx, **(block.get("metadata") if isinstance(block.get("metadata"), dict) else {})},
+                "metadata": _merged_chunk_metadata(
+                    sample_metadata,
+                    block_idx,
+                    block.get("metadata") if isinstance(block.get("metadata"), dict) else None,
+                ),
             })
 
 
@@ -198,6 +218,7 @@ def build_documents_and_chunks(
     splits: list[str],
     limit_per_split: int | None,
     include_qa_context: bool = False,
+    sample_manifest: Path | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     cfg = read_yaml(config_path)
     chunk_cfg = cfg.get("document_chunking", {})
@@ -210,14 +231,24 @@ def build_documents_and_chunks(
     documents: list[dict[str, Any]] = []
     chunks: list[dict[str, Any]] = []
 
-    for dataset in datasets:
-        for split in splits:
+    manifest_rows = read_jsonl(sample_manifest) if sample_manifest is not None else []
+    grouped_rows: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for row in manifest_rows:
+        grouped_rows[(str(row.get("dataset", "")), str(row.get("split", "")))].append(row)
+
+    dataset_split_pairs = list(grouped_rows.keys()) if grouped_rows else [(dataset, split) for dataset in datasets for split in splits]
+
+    for dataset, split in dataset_split_pairs:
+        if grouped_rows:
+            rows = grouped_rows.get((dataset, split), [])
+        else:
             src = input_root / dataset / f"{split}.jsonl"
             rows = read_jsonl(src)
             if limit_per_split is not None:
                 rows = rows[:limit_per_split]
-            for sample in rows:
+        for sample in rows:
                 sample_id = str(sample.get("id", stable_id(dataset, split, len(documents))))
+                sample_metadata = sample.get("metadata") if isinstance(sample.get("metadata"), dict) else {}
                 page_no = _coerce_page_no(sample, default_page_no)
                 image_path = extract_image_path(sample.get("image"))
                 image_path = _resolve_local_image_path(project_root, dataset, split, image_path)
@@ -241,7 +272,7 @@ def build_documents_and_chunks(
                     "question": str(sample.get("question", "")),
                     "answers": sample.get("answers", []),
                     "evidence": evidence,
-                    "metadata": sample.get("metadata", {}),
+                    "metadata": sample_metadata,
                 })
 
                 mineru_blocks = _load_mineru_blocks(mineru_json_root, sample)
@@ -272,7 +303,7 @@ def build_documents_and_chunks(
                                 "source_ref": ref,
                                 "source_path": image_path,
                                 "image_path": image_path,
-                                "metadata": {"parser": "benchmark", "synthetic": True, "index_by_default": False},
+                                "metadata": {**sample_metadata, "parser": "benchmark", "synthetic": True, "index_by_default": False},
                             })
                     _append_block_chunks(
                         chunks,
@@ -287,6 +318,7 @@ def build_documents_and_chunks(
                         blocks=mineru_blocks,
                         max_chars=max_chars,
                         overlap=overlap,
+                        sample_metadata=sample_metadata,
                     )
                     continue
 
@@ -312,7 +344,7 @@ def build_documents_and_chunks(
                             "source_ref": ref,
                             "source_path": image_path,
                             "image_path": image_path,
-                            "metadata": {"parser": "fallback", "index_by_default": False},
+                            "metadata": {**sample_metadata, "parser": "fallback", "index_by_default": False},
                         })
                 if image_path or dataset == "chartqa":
                     chunks.append({
@@ -331,7 +363,7 @@ def build_documents_and_chunks(
                         "source_ref": ref,
                         "source_path": image_path,
                         "image_path": image_path,
-                        "metadata": {"parser": "fallback", "index_by_default": False},
+                        "metadata": {**sample_metadata, "parser": "fallback", "index_by_default": False},
                     })
 
     return documents, chunks
@@ -420,6 +452,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--source-mode", choices=["benchmark", "mineru"], default="benchmark", help="benchmark reads processed QA JSONL; mineru reads data/interim/mineru/<dataset>/*.json directly.")
     parser.add_argument("--include-qa-context", action="store_true", help="Benchmark-only debug option: add synthetic question/answer chunks. Disabled by default for production RAG.")
     parser.add_argument("--limit-per-split", type=int, default=0, help="Optional cap per dataset split; 0 means all.")
+    parser.add_argument("--sample-manifest", default="", help="Optional JSONL manifest of processed benchmark samples.")
     return parser.parse_args()
 
 
@@ -438,7 +471,15 @@ def main() -> int:
     if args.source_mode == "mineru":
         documents, chunks = build_documents_and_chunks_from_mineru(project_root, config_path, datasets, splits, limit)
     else:
-        documents, chunks = build_documents_and_chunks(project_root, config_path, datasets, splits, limit, args.include_qa_context)
+        documents, chunks = build_documents_and_chunks(
+            project_root,
+            config_path,
+            datasets,
+            splits,
+            limit,
+            args.include_qa_context,
+            sample_manifest=(project_root / args.sample_manifest).resolve() if args.sample_manifest else None,
+        )
     doc_count = write_jsonl(document_output, documents)
     chunk_count = write_jsonl(chunk_output, chunks)
     print(f"[parse-chunk] documents={doc_count} -> {document_output}")

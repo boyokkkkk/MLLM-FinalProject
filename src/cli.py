@@ -1,9 +1,6 @@
 ﻿from __future__ import annotations
 
 import argparse
-import os
-import subprocess
-import sys
 
 import uvicorn
 
@@ -16,9 +13,8 @@ def run_api(host: str | None = None, port: int | None = None) -> None:
 
 
 def run_ui() -> None:
-    env = os.environ.copy()
-    cmd = [sys.executable, "-m", "streamlit", "run", "src/ui/app_streamlit.py"]
-    subprocess.run(cmd, check=True, env=env)
+    # The production-facing UI is now mounted directly on the FastAPI app.
+    run_api()
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -29,7 +25,7 @@ def build_parser() -> argparse.ArgumentParser:
     api.add_argument("--host", default=None, help="Override host")
     api.add_argument("--port", type=int, default=None, help="Override port")
 
-    sub.add_parser("ui", help="Run Streamlit frontend demo")
+    sub.add_parser("ui", help="Run the JS frontend served by FastAPI")
     return parser
 
 

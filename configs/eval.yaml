@@ -1,7 +1,24 @@
-﻿eval:
+eval:
   metrics:
     - recall_at_k
     - precision_at_k
+    - hit_at_k
+    - exact_match
     - anls
-    - accuracy
     - citation_accuracy
+  default_top_k: 5
+  default_limit_per_split: 0
+  outputs_root: outputs/eval
+  suites:
+    retrieval_benchmark:
+      mode: retrieval
+      datasets: docvqa,chartqa
+      splits: val,test
+      top_k: 5
+      limit_per_split: 0
+    rag_benchmark:
+      mode: rag
+      datasets: docvqa,chartqa
+      splits: val,test
+      top_k: 5
+      limit_per_split: 0

@@ -1,50 +1,41 @@
 import streamlit as st
 
 
-def get_current_messages():
-
-    return st.session_state.chat_sessions[
-        st.session_state.active_chat
-    ]
+def get_current_messages() -> list[dict]:
+    return st.session_state.chat_sessions[st.session_state.active_chat]
 
 
-def render_chat_history():
-
+def render_chat_history() -> None:
     messages = get_current_messages()
-
     for msg in messages:
-
         with st.chat_message(msg["role"]):
-
             st.markdown(msg["content"])
+            for image in msg.get("images", []):
+                st.image(image, width=220)
+            files = msg.get("files", [])
+            if files:
+                st.caption("Files: " + ", ".join(files))
 
 
-def add_user_message(content):
-
-    st.session_state.chat_sessions[
-        st.session_state.active_chat
-    ].append(
+def add_user_message(content: str, *, images: list[str] | None = None, files: list[str] | None = None) -> None:
+    st.session_state.chat_sessions[st.session_state.active_chat].append(
         {
             "role": "user",
-            "content": content
+            "content": content,
+            "images": images or [],
+            "files": files or [],
         }
     )
 
 
-def add_assistant_message(content):
-
-    st.session_state.chat_sessions[
-        st.session_state.active_chat
-    ].append(
+def add_assistant_message(content: str) -> None:
+    st.session_state.chat_sessions[st.session_state.active_chat].append(
         {
             "role": "assistant",
-            "content": content
+            "content": content,
         }
     )
 
 
-def clear_current_chat():
-
-    st.session_state.chat_sessions[
-        st.session_state.active_chat
-    ] = []
+def clear_current_chat() -> None:
+    st.session_state.chat_sessions[st.session_state.active_chat] = []

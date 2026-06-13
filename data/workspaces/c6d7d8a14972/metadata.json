@@ -1,0 +1,31 @@
+{
+  "workspace_id": "c6d7d8a14972",
+  "scope": "workspace",
+  "dataset_name": "workspace_c6d7d8a14972",
+  "status": "indexed",
+  "stage": "ready",
+  "progress": 1.0,
+  "progress_label": "Workspace indexed and ready for retrieval",
+  "created_at": "2026-06-13T01:04:32Z",
+  "updated_at": "2026-06-13T01:04:33Z",
+  "assets": [
+    {
+      "asset_id": "7dc1fafd9d",
+      "name": "b.md",
+      "stored_name": "7dc1fafd9d_b.md",
+      "path": "D:\\MLLMProject\\data\\workspaces\\c6d7d8a14972\\raw\\7dc1fafd9d_b.md",
+      "type": "md",
+      "status": "indexed",
+      "stage": "indexed",
+      "parser": "workspace_text_sections",
+      "section_count": 1,
+      "snippet": "# B ## R result b"
+    }
+  ],
+  "last_error": "",
+  "counts": {
+    "documents": 1,
+    "chunks": 1,
+    "visual_items": 0
+  }
+}

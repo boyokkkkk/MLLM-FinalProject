@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import cached_property
+import os
 from pathlib import Path
 
 import yaml
@@ -24,9 +25,41 @@ class RetrievalConfig(BaseModel):
     top_k_text: int = 5
     top_k_vision: int = 5
     score_threshold: float = 0.0
-    rerank: bool = False
+    rerank: bool = True
+    query_type_aware_rerank: bool = True
+    rerank_profile: str = "stronger"
+    rerank_pool_size: int = 20
+    diversify_results: bool = False
+    fingerprint_duplicate_penalty: float = 0.10
+    docpage_duplicate_penalty: float = 0.08
+    same_sample_penalty: float = 0.04
+    dense_rerank: bool = False
+    dense_rerank_pool_size: int = 12
+    dense_score_weight: float = 0.35
     index_path: Path = Field(default=Path("data/processed/retrieval/text_vectors.npy"))
     metadata_path: Path = Field(default=Path("data/processed/retrieval/text_chunks.jsonl"))
+    sparse_index_path: Path = Field(default=Path("data/processed/indexes/text/doc_store.json"))
+    visual_index_path: Path = Field(default=Path("data/processed/indexes/vision/visual_store.json"))
+    visual_fusion: bool = False
+    visual_pool_size: int = 16
+    visual_fusion_weight: float = 0.45
+    visual_dense_metadata_path: Path = Field(default=Path("data/processed/indexes/vision/visual_descriptor_store.jsonl"))
+    visual_dense_vectors_path: Path = Field(default=Path("data/processed/indexes/vision/visual_descriptor_vectors.json"))
+    visual_dense_fusion: bool = False
+    visual_dense_pool_size: int = 24
+    visual_dense_weight: float = 0.45
+    text_fusion_weight: float = 1.0
+    fusion_k: int = 60
+    chart_table_specialist: bool = False
+    chart_table_visual_boost: float = 0.18
+    query_image_aware_rerank: bool = False
+    query_image_pool_size: int = 20
+    query_image_weight: float = 0.35
+    generation_visual_assist: bool = False
+    generation_visual_top_n: int = 2
+    generation_visual_include_descriptors: bool = True
+    generation_visual_include_images: bool = True
+    generation_visual_prefer_crops: bool = True
     context_max_chars: int = 4000
     fallback_to_request_context: bool = True
     default_temperature: float = 0.2
@@ -48,6 +81,41 @@ def _load_yaml(path: Path) -> dict:
     if not isinstance(data, dict):
         raise ValueError(f"Expected mapping in config file: {path}")
     return data
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return int(value)
+
+
+def _env_float(name: str, default: float) -> float:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return float(value)
+
+
+def _env_str(name: str, default: str) -> str:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value
+
+
+def _env_path(name: str, default: Path) -> Path:
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        return default
+    return Path(value)
 
 
 class AppSettings(BaseSettings):
@@ -115,10 +183,53 @@ class AppSettings(BaseSettings):
     def retrieval(self) -> RetrievalConfig:
         raw_config = _load_yaml(RETRIEVAL_CONFIG_FILE).get("retrieval", {})
         config = RetrievalConfig(**raw_config)
+        config = config.model_copy(
+            update={
+                "rerank": _env_bool("RETRIEVAL_RERANK", config.rerank),
+                "query_type_aware_rerank": _env_bool("RETRIEVAL_QUERY_TYPE_AWARE_RERANK", config.query_type_aware_rerank),
+                "rerank_profile": _env_str("RETRIEVAL_RERANK_PROFILE", config.rerank_profile),
+                "rerank_pool_size": _env_int("RETRIEVAL_RERANK_POOL_SIZE", config.rerank_pool_size),
+                "diversify_results": _env_bool("RETRIEVAL_DIVERSIFY_RESULTS", config.diversify_results),
+                "fingerprint_duplicate_penalty": _env_float("RETRIEVAL_FINGERPRINT_DUPLICATE_PENALTY", config.fingerprint_duplicate_penalty),
+                "docpage_duplicate_penalty": _env_float("RETRIEVAL_DOCPAGE_DUPLICATE_PENALTY", config.docpage_duplicate_penalty),
+                "same_sample_penalty": _env_float("RETRIEVAL_SAME_SAMPLE_PENALTY", config.same_sample_penalty),
+                "dense_rerank": _env_bool("RETRIEVAL_DENSE_RERANK", config.dense_rerank),
+                "dense_rerank_pool_size": _env_int("RETRIEVAL_DENSE_RERANK_POOL_SIZE", config.dense_rerank_pool_size),
+                "dense_score_weight": _env_float("RETRIEVAL_DENSE_SCORE_WEIGHT", config.dense_score_weight),
+                "index_path": _env_path("RETRIEVAL_INDEX_PATH", config.index_path),
+                "metadata_path": _env_path("RETRIEVAL_METADATA_PATH", config.metadata_path),
+                "sparse_index_path": _env_path("RETRIEVAL_SPARSE_INDEX_PATH", config.sparse_index_path),
+                "visual_index_path": _env_path("RETRIEVAL_VISUAL_INDEX_PATH", config.visual_index_path),
+                "visual_fusion": _env_bool("RETRIEVAL_VISUAL_FUSION", config.visual_fusion),
+                "visual_pool_size": _env_int("RETRIEVAL_VISUAL_POOL_SIZE", config.visual_pool_size),
+                "visual_fusion_weight": _env_float("RETRIEVAL_VISUAL_FUSION_WEIGHT", config.visual_fusion_weight),
+                "visual_dense_metadata_path": _env_path("RETRIEVAL_VISUAL_DENSE_METADATA_PATH", config.visual_dense_metadata_path),
+                "visual_dense_vectors_path": _env_path("RETRIEVAL_VISUAL_DENSE_VECTORS_PATH", config.visual_dense_vectors_path),
+                "visual_dense_fusion": _env_bool("RETRIEVAL_VISUAL_DENSE_FUSION", config.visual_dense_fusion),
+                "visual_dense_pool_size": _env_int("RETRIEVAL_VISUAL_DENSE_POOL_SIZE", config.visual_dense_pool_size),
+                "visual_dense_weight": _env_float("RETRIEVAL_VISUAL_DENSE_WEIGHT", config.visual_dense_weight),
+                "text_fusion_weight": _env_float("RETRIEVAL_TEXT_FUSION_WEIGHT", config.text_fusion_weight),
+                "fusion_k": _env_int("RETRIEVAL_FUSION_K", config.fusion_k),
+                "chart_table_specialist": _env_bool("RETRIEVAL_CHART_TABLE_SPECIALIST", config.chart_table_specialist),
+                "chart_table_visual_boost": _env_float("RETRIEVAL_CHART_TABLE_VISUAL_BOOST", config.chart_table_visual_boost),
+                "query_image_aware_rerank": _env_bool("RETRIEVAL_QUERY_IMAGE_AWARE_RERANK", config.query_image_aware_rerank),
+                "query_image_pool_size": _env_int("RETRIEVAL_QUERY_IMAGE_POOL_SIZE", config.query_image_pool_size),
+                "query_image_weight": _env_float("RETRIEVAL_QUERY_IMAGE_WEIGHT", config.query_image_weight),
+                "generation_visual_assist": _env_bool("RETRIEVAL_GENERATION_VISUAL_ASSIST", config.generation_visual_assist),
+                "generation_visual_top_n": _env_int("RETRIEVAL_GENERATION_VISUAL_TOP_N", config.generation_visual_top_n),
+                "generation_visual_include_descriptors": _env_bool("RETRIEVAL_GENERATION_VISUAL_INCLUDE_DESCRIPTORS", config.generation_visual_include_descriptors),
+                "generation_visual_include_images": _env_bool("RETRIEVAL_GENERATION_VISUAL_INCLUDE_IMAGES", config.generation_visual_include_images),
+                "generation_visual_prefer_crops": _env_bool("RETRIEVAL_GENERATION_VISUAL_PREFER_CROPS", config.generation_visual_prefer_crops),
+            }
+        )
         return config.model_copy(
             update={
                 "index_path": _resolve_project_path(config.index_path),
                 "metadata_path": _resolve_project_path(config.metadata_path),
+                "sparse_index_path": _resolve_project_path(config.sparse_index_path),
+                "visual_index_path": _resolve_project_path(config.visual_index_path),
+                "visual_dense_metadata_path": _resolve_project_path(config.visual_dense_metadata_path),
+                "visual_dense_vectors_path": _resolve_project_path(config.visual_dense_vectors_path),
             }
         )
 

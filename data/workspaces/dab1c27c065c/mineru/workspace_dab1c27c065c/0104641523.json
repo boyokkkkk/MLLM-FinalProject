@@ -1,0 +1,38 @@
+{
+  "document_id": "workspace-doc-0104641523",
+  "sample_id": "0104641523",
+  "dataset": "workspace_dab1c27c065c",
+  "split": "workspace",
+  "source_path": "D:\\MLLMProject\\data\\workspaces\\dab1c27c065c\\raw\\0104641523_report.md",
+  "source_type": "md",
+  "raw_output_dir": "D:\\MLLMProject\\data\\workspaces\\dab1c27c065c\\raw",
+  "raw_files": [
+    "0104641523_report.md"
+  ],
+  "metadata": {
+    "workspace_id": "dab1c27c065c",
+    "asset_name": "report.md"
+  },
+  "blocks": [
+    {
+      "block_id": "text-000",
+      "type": "text",
+      "text": "PCA compression preserves structure but reduces PSNR and SSIM at higher compression ratios.",
+      "page_no": 1,
+      "metadata": {
+        "asset_name": "report.md",
+        "section_title": "Results"
+      }
+    },
+    {
+      "block_id": "text-001",
+      "type": "text",
+      "text": "PCA is effective for compact representation.",
+      "page_no": 1,
+      "metadata": {
+        "asset_name": "report.md",
+        "section_title": "Conclusion"
+      }
+    }
+  ]
+}

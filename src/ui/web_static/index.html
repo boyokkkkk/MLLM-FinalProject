@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MLLM 工作台</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand-card panel">
+        <div class="eyebrow">MLLM PROJECT</div>
+        <h1>研究工作台</h1>
+        <p>上传文件，完成索引后直接对话。</p>
+      </div>
+
+      <nav class="nav panel" aria-label="Primary">
+        <button class="nav-link is-active" data-tab-target="chat">
+          <span>对话</span>
+          <small>基于工作区问答</small>
+        </button>
+        <button class="nav-link" data-tab-target="services">
+          <span>服务</span>
+          <small>接口与模型</small>
+        </button>
+        <button class="nav-link" data-tab-target="evaluation">
+          <span>评测</span>
+          <small>结果与图表</small>
+        </button>
+      </nav>
+
+      <section class="panel compact-panel">
+        <div class="section-label">系统状态</div>
+        <div class="status-row">
+          <span id="health-dot" class="status-dot"></span>
+          <strong id="health-text">连接中</strong>
+        </div>
+        <div class="metric-grid">
+          <article class="metric-card">
+            <span>文档</span>
+            <strong id="metric-docs">-</strong>
+          </article>
+          <article class="metric-card">
+            <span>分块</span>
+            <strong id="metric-chunks">-</strong>
+          </article>
+          <article class="metric-card">
+            <span>视觉</span>
+            <strong id="metric-visual">-</strong>
+          </article>
+          <article class="metric-card">
+            <span>版本</span>
+            <strong id="metric-version">-</strong>
+          </article>
+        </div>
+      </section>
+    </aside>
+
+    <main class="workspace panel">
+      <header class="hero">
+        <div>
+          <div class="eyebrow">工作区</div>
+          <h2>前端直连完整 RAG 流程</h2>
+          <p id="hero-subtitle">
+            上传、解析、索引、检索、回答都在这里完成。
+          </p>
+        </div>
+        <div class="hero-pills">
+          <span class="pill" id="pill-model">模型：-</span>
+          <span class="pill" id="pill-rerank">重排：-</span>
+          <span class="pill" id="pill-vision">视觉辅助：-</span>
+        </div>
+      </header>
+
+      <div id="app-banner" class="banner banner-hidden" role="status"></div>
+
+      <section id="tab-chat" class="tab-section is-active">
+        <div class="chat-workspace-grid">
+          <div class="dialog-column">
+            <section class="panel dialogue-shell">
+              <div class="dialogue-topbar">
+                <div>
+                  <div class="section-label">对话</div>
+                  <h3>工作区对话</h3>
+                  <p class="section-copy">
+                    围绕当前工作区连续提问。
+                  </p>
+                </div>
+                <button id="clear-history-btn" class="ghost-button" type="button">清空对话</button>
+              </div>
+
+              <div id="suggestions" class="suggestion-row" aria-label="Suggested prompts"></div>
+
+              <div class="conversation-stage">
+                <div id="conversation" class="conversation empty-state">
+                  请输入问题。
+                </div>
+              </div>
+
+              <div class="composer-dock">
+                <label class="field">
+                  <span>问题</span>
+                  <textarea id="question-input" rows="4" placeholder="例如：总结这份实验的主要结果。"></textarea>
+                </label>
+
+                <div class="form-grid compact-form-grid">
+                  <label class="field">
+                    <span>检索模式</span>
+                    <select id="scope-select">
+                      <option value="workspace-first" selected>工作区优先</option>
+                      <option value="global">全局语料</option>
+                      <option value="context-only">仅上下文</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span>温度</span>
+                    <input id="temperature-input" type="number" min="0" max="1.5" step="0.1" value="0.2">
+                  </label>
+                  <label class="field">
+                    <span>最大输出</span>
+                    <input id="max-tokens-input" type="number" min="64" max="4096" step="64" value="512">
+                  </label>
+                </div>
+
+                <label class="field compact-context-field">
+                  <span>补充上下文</span>
+                  <textarea id="context-input" rows="3" placeholder="可选补充说明。"></textarea>
+                </label>
+
+                <div class="button-row composer-actions">
+                  <button id="clear-workspace-btn" class="ghost-button" type="button">清空输入</button>
+                  <button id="submit-btn" class="primary-button" type="button">
+                    <span class="button-label">发送</span>
+                  </button>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <aside class="context-column">
+            <section class="panel composer-panel">
+              <div class="section-header">
+                <div>
+                  <div class="section-label">工作区文件</div>
+                  <h3>上传并进入 RAG 流程</h3>
+                </div>
+                <button id="new-workspace-btn" class="ghost-button" type="button">新建工作区</button>
+              </div>
+
+              <div id="workspace-status" class="empty-state" style="margin-top:16px;">
+                暂无工作区，请先上传文件。
+              </div>
+
+              <div class="upload-grid">
+                <label class="field upload-field">
+                  <span>文档</span>
+                  <input id="text-files-input" type="file" accept=".txt,.md,.json,.csv,.tex" multiple>
+                </label>
+                <label class="field upload-field">
+                  <span>图片 / PDF</span>
+                  <input id="image-files-input" type="file" accept="image/*,.pdf" multiple>
+                </label>
+              </div>
+
+              <div id="workspace-assets" class="asset-list empty-state">
+                暂无文件。
+              </div>
+            </section>
+
+            <section class="panel section-panel">
+              <div class="section-label">服务信息</div>
+              <h3>接口映射</h3>
+              <div id="service-console" class="stack-list"></div>
+            </section>
+
+            <section class="panel section-panel">
+              <div class="section-label">检索配置</div>
+              <h3>当前策略</h3>
+              <div id="retrieval-console" class="stack-list"></div>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <section id="tab-services" class="tab-section">
+        <div class="section-panel panel">
+          <div class="section-label">服务</div>
+          <h3>后端服务概览</h3>
+        </div>
+        <div id="service-cards" class="service-card-grid"></div>
+      </section>
+
+      <section id="tab-evaluation" class="tab-section">
+        <div class="section-panel panel">
+          <div class="section-label">评测</div>
+          <h3>评测结果</h3>
+        </div>
+
+        <div id="evaluation-summary" class="summary-grid"></div>
+
+        <div class="eval-grid">
+          <section class="panel section-panel">
+            <div class="section-label">主要结果</div>
+            <div id="main-results-table" class="table-wrap empty-state">未找到结果表。</div>
+          </section>
+          <section class="panel section-panel">
+            <div class="section-label">错误分布</div>
+            <div id="error-breakdown-table" class="table-wrap empty-state">未找到错误表。</div>
+          </section>
+        </div>
+
+        <section class="panel section-panel">
+          <div class="section-label">图表</div>
+          <div id="figure-gallery" class="figure-gallery empty-state">未找到图表。</div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

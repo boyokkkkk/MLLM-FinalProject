@@ -1,0 +1,126 @@
+{
+  "chk-93d2b6101db236a3": {
+    "bbox": null,
+    "block_id": "text-001",
+    "block_index": 3,
+    "chunk_id": "chk-93d2b6101db236a3",
+    "chunk_type": "text",
+    "dataset": "workspace_f5ea18b46c84",
+    "document_id": "workspace-doc-94c90a6099",
+    "image_path": null,
+    "metadata": {
+      "asset_name": "report.md",
+      "block_index": 3,
+      "parser": "mineru",
+      "section_title": "Conclusion"
+    },
+    "page_no": 1,
+    "part_index": 0,
+    "sample_id": "94c90a6099",
+    "source_path": "D:\\MLLMProject\\data\\workspaces\\f5ea18b46c84\\raw\\94c90a6099_report.md",
+    "source_ref": "workspace_f5ea18b46c84/workspace/94c90a6099#page=1#block=text-001",
+    "split": "workspace",
+    "text": "PCA is effective for compact representation.",
+    "tf": {
+      "compact": 1,
+      "effective": 1,
+      "for": 1,
+      "is": 1,
+      "pca": 1,
+      "representation": 1
+    },
+    "token_count": 6
+  },
+  "chk-97053cae084d1bbf": {
+    "bbox": null,
+    "block_id": "title-000",
+    "block_index": 0,
+    "chunk_id": "chk-97053cae084d1bbf",
+    "chunk_type": "title",
+    "dataset": "workspace_f5ea18b46c84",
+    "document_id": "workspace-doc-94c90a6099",
+    "image_path": null,
+    "metadata": {
+      "asset_name": "report.md",
+      "block_index": 0,
+      "parser": "mineru",
+      "section_title": "Results"
+    },
+    "page_no": 1,
+    "part_index": 0,
+    "sample_id": "94c90a6099",
+    "source_path": "D:\\MLLMProject\\data\\workspaces\\f5ea18b46c84\\raw\\94c90a6099_report.md",
+    "source_ref": "workspace_f5ea18b46c84/workspace/94c90a6099#page=1#block=title-000",
+    "split": "workspace",
+    "text": "Results",
+    "tf": {
+      "results": 1
+    },
+    "token_count": 1
+  },
+  "chk-a7328aa78936db31": {
+    "bbox": null,
+    "block_id": "title-001",
+    "block_index": 2,
+    "chunk_id": "chk-a7328aa78936db31",
+    "chunk_type": "title",
+    "dataset": "workspace_f5ea18b46c84",
+    "document_id": "workspace-doc-94c90a6099",
+    "image_path": null,
+    "metadata": {
+      "asset_name": "report.md",
+      "block_index": 2,
+      "parser": "mineru",
+      "section_title": "Conclusion"
+    },
+    "page_no": 1,
+    "part_index": 0,
+    "sample_id": "94c90a6099",
+    "source_path": "D:\\MLLMProject\\data\\workspaces\\f5ea18b46c84\\raw\\94c90a6099_report.md",
+    "source_ref": "workspace_f5ea18b46c84/workspace/94c90a6099#page=1#block=title-001",
+    "split": "workspace",
+    "text": "Conclusion",
+    "tf": {
+      "conclusion": 1
+    },
+    "token_count": 1
+  },
+  "chk-e70a3a3ff7b3a5fd": {
+    "bbox": null,
+    "block_id": "text-000",
+    "block_index": 1,
+    "chunk_id": "chk-e70a3a3ff7b3a5fd",
+    "chunk_type": "text",
+    "dataset": "workspace_f5ea18b46c84",
+    "document_id": "workspace-doc-94c90a6099",
+    "image_path": null,
+    "metadata": {
+      "asset_name": "report.md",
+      "block_index": 1,
+      "parser": "mineru",
+      "section_title": "Results"
+    },
+    "page_no": 1,
+    "part_index": 0,
+    "sample_id": "94c90a6099",
+    "source_path": "D:\\MLLMProject\\data\\workspaces\\f5ea18b46c84\\raw\\94c90a6099_report.md",
+    "source_ref": "workspace_f5ea18b46c84/workspace/94c90a6099#page=1#block=text-000",
+    "split": "workspace",
+    "text": "PCA compression preserves structure but reduces PSNR and SSIM at higher compression ratios.",
+    "tf": {
+      "and": 1,
+      "at": 1,
+      "but": 1,
+      "compression": 2,
+      "higher": 1,
+      "pca": 1,
+      "preserves": 1,
+      "psnr": 1,
+      "ratios": 1,
+      "reduces": 1,
+      "ssim": 1,
+      "structure": 1
+    },
+    "token_count": 13
+  }
+}

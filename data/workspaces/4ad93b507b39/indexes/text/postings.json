@@ -1,0 +1,132 @@
+{
+  "and": [
+    {
+      "chunk_id": "chk-59ba69fa2e843d01",
+      "tf": 1
+    }
+  ],
+  "compact": [
+    {
+      "chunk_id": "chk-bf7d5bb0c55758de",
+      "tf": 1
+    }
+  ],
+  "compression": [
+    {
+      "chunk_id": "chk-59ba69fa2e843d01",
+      "tf": 1
+    }
+  ],
+  "conclusion": [
+    {
+      "chunk_id": "chk-ebd7db86de17c39d",
+      "tf": 1
+    }
+  ],
+  "document": [
+    {
+      "chunk_id": "chk-6a547b7698fdd740",
+      "tf": 1
+    }
+  ],
+  "effective": [
+    {
+      "chunk_id": "chk-bf7d5bb0c55758de",
+      "tf": 1
+    }
+  ],
+  "experiment": [
+    {
+      "chunk_id": "chk-5b826ba37eb408a1",
+      "tf": 1
+    }
+  ],
+  "for": [
+    {
+      "chunk_id": "chk-bf7d5bb0c55758de",
+      "tf": 1
+    }
+  ],
+  "higher": [
+    {
+      "chunk_id": "chk-59ba69fa2e843d01",
+      "tf": 1
+    }
+  ],
+  "lowers": [
+    {
+      "chunk_id": "chk-59ba69fa2e843d01",
+      "tf": 1
+    }
+  ],
+  "major": [
+    {
+      "chunk_id": "chk-59ba69fa2e843d01",
+      "tf": 1
+    }
+  ],
+  "overview": [
+    {
+      "chunk_id": "chk-6a547b7698fdd740",
+      "tf": 1
+    }
+  ],
+  "pca": [
+    {
+      "chunk_id": "chk-5b826ba37eb408a1",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-bf7d5bb0c55758de",
+      "tf": 1
+    }
+  ],
+  "preserving": [
+    {
+      "chunk_id": "chk-59ba69fa2e843d01",
+      "tf": 1
+    }
+  ],
+  "psnr": [
+    {
+      "chunk_id": "chk-59ba69fa2e843d01",
+      "tf": 1
+    }
+  ],
+  "remains": [
+    {
+      "chunk_id": "chk-bf7d5bb0c55758de",
+      "tf": 1
+    }
+  ],
+  "representation": [
+    {
+      "chunk_id": "chk-bf7d5bb0c55758de",
+      "tf": 1
+    }
+  ],
+  "results": [
+    {
+      "chunk_id": "chk-9ea02b7b25d8d936",
+      "tf": 1
+    }
+  ],
+  "ssim": [
+    {
+      "chunk_id": "chk-59ba69fa2e843d01",
+      "tf": 1
+    }
+  ],
+  "structure": [
+    {
+      "chunk_id": "chk-59ba69fa2e843d01",
+      "tf": 1
+    }
+  ],
+  "while": [
+    {
+      "chunk_id": "chk-59ba69fa2e843d01",
+      "tf": 1
+    }
+  ]
+}

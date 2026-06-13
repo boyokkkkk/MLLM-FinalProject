@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import json
 import os
 import shutil
 import subprocess
 import sys
+import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +20,10 @@ if str(PROJECT_ROOT) not in sys.path:
 from scripts.data_index_utils import extract_image_path, read_jsonl, stable_id, write_json
 
 SUPPORTED_INPUT_SUFFIXES = {".pdf", ".png", ".jpg", ".jpeg", ".webp", ".bmp"}
+DEFAULT_MINERU_API_HOST = "127.0.0.1"
+DEFAULT_MINERU_API_PORT = 8000
+DEFAULT_MINERU_API_TIMEOUT = 180
+DEFAULT_MINERU_NUM_WORKERS = 3
 
 
 def _resolve_local_path(project_root: Path, dataset: str, split: str, image_value: Any) -> Path | None:
@@ -36,6 +44,138 @@ def _resolve_source_path(project_root: Path, value: str) -> Path:
     if not path.is_absolute():
         path = project_root / path
     return path.resolve()
+
+
+def _find_local_executable(project_root: Path, *names: str) -> str | None:
+    candidates: list[Path] = []
+    script_dir = Path(sys.executable).resolve().parent
+    for name in names:
+        candidates.extend(
+            [
+                script_dir / name,
+                project_root / ".venv" / "Scripts" / name,
+                project_root / ".venv" / "bin" / name,
+            ]
+        )
+    for path in candidates:
+        if path.exists():
+            return str(path)
+    for name in names:
+        found = shutil.which(name)
+        if found:
+            return found
+    return None
+
+
+def _join_base_url(base: str, path: str) -> str:
+    return f"{base.rstrip('/')}/{path.lstrip('/')}"
+
+
+def _is_url_ready(url: str, timeout_sec: float = 3.0) -> bool:
+    try:
+        with urllib.request.urlopen(url, timeout=timeout_sec) as response:
+            return 200 <= int(getattr(response, "status", 200)) < 500
+    except urllib.error.HTTPError as exc:
+        return 200 <= int(exc.code) < 500
+    except Exception:
+        return False
+
+
+def _wait_for_api(api_url: str, timeout_sec: int) -> None:
+    probe_urls = [
+        _join_base_url(api_url, "/docs"),
+        _join_base_url(api_url, "/openapi.json"),
+    ]
+    deadline = time.time() + max(timeout_sec, 1)
+    while time.time() < deadline:
+        if any(_is_url_ready(url) for url in probe_urls):
+            return
+        time.sleep(1)
+    raise TimeoutError(f"Timed out waiting for MinerU API at {api_url}")
+
+
+class MineruApiSession:
+    def __init__(
+        self,
+        project_root: Path,
+        api_url: str,
+        api_host: str,
+        api_port: int,
+        startup_timeout: int,
+        keep_alive: bool,
+        enable_vlm_preload: bool,
+        mineru_model_source: str,
+    ) -> None:
+        self.project_root = project_root
+        self.external_api_url = api_url.strip()
+        self.api_host = api_host
+        self.api_port = api_port
+        self.startup_timeout = startup_timeout
+        self.keep_alive = keep_alive
+        self.enable_vlm_preload = enable_vlm_preload
+        self.mineru_model_source = mineru_model_source
+        self.process: subprocess.Popen[str] | None = None
+        self.started_here = False
+        self.base_url = self.external_api_url or f"http://{self.api_host}:{self.api_port}"
+
+    def ensure_started(self) -> str:
+        if self.external_api_url:
+            print(f"[mineru-api] reuse external service -> {self.base_url}")
+            _wait_for_api(self.base_url, self.startup_timeout)
+            return self.base_url
+
+        _wait_for_api(self.base_url, timeout_sec=1)
+        print(f"[mineru-api] reuse detected local service -> {self.base_url}")
+        return self.base_url
+
+    def start_if_needed(self) -> str:
+        if self.external_api_url:
+            return self.ensure_started()
+
+        try:
+            return self.ensure_started()
+        except TimeoutError:
+            pass
+
+        mineru_api_bin = _find_local_executable(self.project_root, "mineru-api", "mineru-api.exe")
+        if not mineru_api_bin:
+            raise RuntimeError("mineru-api CLI not found. Install it with: python -m pip install -U 'mineru[core]' or uv pip install -U 'mineru[core]'.")
+        env = os.environ.copy()
+        if self.mineru_model_source:
+            env["MINERU_MODEL_SOURCE"] = self.mineru_model_source
+        cmd = [mineru_api_bin, "--host", self.api_host, "--port", str(self.api_port)]
+        if self.enable_vlm_preload:
+            cmd.extend(["--enable-vlm-preload", "true"])
+        print(f"[mineru-api] start -> {' '.join(cmd)}")
+        print(f"[mineru-api] MINERU_MODEL_SOURCE={env.get('MINERU_MODEL_SOURCE', '')}")
+        self.process = subprocess.Popen(
+            cmd,
+            cwd=str(self.project_root),
+            env=env,
+        )
+        self.started_here = True
+        try:
+            _wait_for_api(self.base_url, self.startup_timeout)
+        except Exception:
+            self.stop(force=True)
+            raise
+        print(f"[mineru-api] ready -> {self.base_url}")
+        return self.base_url
+
+    def stop(self, force: bool = False) -> None:
+        if not self.process:
+            return
+        if self.keep_alive and not force:
+            print(f"[mineru-api] keep alive -> {self.base_url}")
+            return
+        if self.process.poll() is None:
+            self.process.terminate()
+            try:
+                self.process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+                self.process.wait(timeout=5)
+        self.process = None
 
 
 def _iter_input_samples(project_root: Path, input_path: str, dataset: str, split: str, document_id: str | None) -> list[tuple[dict[str, Any], Path]]:
@@ -214,8 +354,10 @@ def run_mineru_on_sample(
     method: str,
     mock: bool,
     mineru_model_source: str,
+    api_url: str | None = None,
     start_page: int | None = None,
     end_page: int | None = None,
+    normalized_root: Path | None = None,
 ) -> dict[str, Any]:
     dataset = str(sample.get("dataset", "unknown"))
     split = str(sample.get("split", "unknown"))
@@ -227,19 +369,23 @@ def run_mineru_on_sample(
         page_no = 1
 
     document_id = str(sample.get("document_id") or f"doc-{stable_id(dataset, split, sample_id, source_path)}")
-    normalized_path = project_root / "data" / "interim" / "mineru" / dataset / f"{sample_id}.json"
+    normalized_base = normalized_root or (project_root / "data" / "interim" / "mineru")
+    normalized_path = normalized_base / dataset / f"{sample_id}.json"
     raw_output_dir = output_root / dataset / split / sample_id
 
     if mock:
         blocks = _make_mock_blocks(sample, page_no)
         raw_files: list[str] = []
     else:
-        mineru_bin = shutil.which("mineru") or shutil.which("magic-pdf")
+        mineru_bin = _find_local_executable(project_root, "mineru", "mineru.exe", "magic-pdf", "magic-pdf.exe")
         if not mineru_bin:
             raise RuntimeError("MinerU CLI not found. Install it with: python -m pip install -U 'mineru[core]' or uv pip install -U 'mineru[core]'.")
         raw_output_dir.mkdir(parents=True, exist_ok=True)
         cmd = [mineru_bin, "-p", str(source_path), "-o", str(raw_output_dir)]
-        if Path(mineru_bin).name == "mineru":
+        mineru_prog = Path(mineru_bin).stem.lower()
+        if mineru_prog == "mineru":
+            if api_url:
+                cmd.extend(["--api-url", api_url])
             cmd.extend(["-b", backend])
             if start_page is not None:
                 cmd.extend(["-s", str(start_page)])
@@ -283,8 +429,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--document-id", default="", help="Optional document/sample id for a single --input-path file.")
     parser.add_argument("--limit-per-split", type=int, default=1, help="Max samples per dataset split. 0 means all.")
     parser.add_argument("--output-root", default="data/interim/mineru_raw", help="Raw MinerU output root.")
+    parser.add_argument("--normalized-root", default="data/interim/mineru", help="Normalized MinerU JSON output root.")
     parser.add_argument("--backend", default="pipeline", help="MinerU backend, e.g. pipeline.")
     parser.add_argument("--method", default="auto", help="magic-pdf method fallback: auto/ocr/txt.")
+    parser.add_argument("--api-url", default="", help="Reuse an existing MinerU FastAPI service, e.g. http://127.0.0.1:8000.")
+    parser.add_argument("--api-host", default=DEFAULT_MINERU_API_HOST, help="Host for auto-started local mineru-api.")
+    parser.add_argument("--api-port", type=int, default=DEFAULT_MINERU_API_PORT, help="Port for auto-started local mineru-api.")
+    parser.add_argument("--api-startup-timeout", type=int, default=DEFAULT_MINERU_API_TIMEOUT, help="Seconds to wait for mineru-api readiness.")
+    parser.add_argument("--keep-api-alive", action="store_true", help="Leave the auto-started mineru-api process running after this script exits.")
+    parser.add_argument("--enable-vlm-preload", action="store_true", help="Pass --enable-vlm-preload true when auto-starting mineru-api.")
+    parser.add_argument("--num-workers", type=int, default=DEFAULT_MINERU_NUM_WORKERS, help="Number of concurrent MinerU client submissions against the persistent mineru-api service.")
     parser.add_argument("--start-page", type=int, default=None, help="Optional zero-based first PDF page for MinerU CLI.")
     parser.add_argument("--end-page", type=int, default=None, help="Optional zero-based last PDF page for MinerU CLI.")
     parser.add_argument("--mock", action="store_true", help="Write MinerU-compatible mock blocks without invoking MinerU.")
@@ -297,36 +451,19 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> int:
-    args = parse_args()
-    project_root = Path(args.project_root).resolve()
+def _collect_samples_from_args(args: argparse.Namespace, project_root: Path) -> list[tuple[dict[str, Any], Path]]:
     datasets = [x.strip() for x in args.datasets.split(",") if x.strip()]
     splits = [x.strip() for x in args.splits.split(",") if x.strip()]
-    output_root = project_root / args.output_root
-    total = 0
 
     if args.input_path:
         dataset = datasets[0] if datasets else "raw_documents"
         split = splits[0] if splits else "raw"
-        for sample, source_path in _iter_input_samples(project_root, args.input_path, dataset, split, args.document_id or None):
-            run_mineru_on_sample(
-                project_root,
-                sample,
-                source_path,
-                output_root,
-                args.backend,
-                args.method,
-                args.mock,
-                args.mineru_model_source,
-                args.start_page,
-                args.end_page,
-            )
-            total += 1
-            if args.limit_per_split and total >= args.limit_per_split:
-                break
-        print(f"[mineru] done samples={total}")
-        return 0
+        samples = _iter_input_samples(project_root, args.input_path, dataset, split, args.document_id or None)
+        if args.limit_per_split:
+            return samples[: args.limit_per_split]
+        return samples
 
+    tasks: list[tuple[dict[str, Any], Path]] = []
     for dataset in datasets:
         for split in splits:
             rows = read_jsonl(project_root / "data" / "processed" / dataset / f"{split}.jsonl")
@@ -335,6 +472,43 @@ def main() -> int:
                 source_path = _resolve_local_path(project_root, dataset, split, sample.get("image"))
                 if source_path is None:
                     continue
+                tasks.append((sample, source_path))
+                kept += 1
+                if args.limit_per_split and kept >= args.limit_per_split:
+                    break
+    return tasks
+
+
+def main() -> int:
+    args = parse_args()
+    project_root = Path(args.project_root).resolve()
+    output_root = project_root / args.output_root
+    normalized_root = project_root / args.normalized_root
+    tasks = _collect_samples_from_args(args, project_root)
+    if not tasks:
+        print("[mineru] no eligible samples found")
+        return 0
+
+    api_session = MineruApiSession(
+        project_root=project_root,
+        api_url=args.api_url,
+        api_host=args.api_host,
+        api_port=args.api_port,
+        startup_timeout=args.api_startup_timeout,
+        keep_alive=args.keep_api_alive,
+        enable_vlm_preload=args.enable_vlm_preload,
+        mineru_model_source=args.mineru_model_source,
+    )
+    api_url: str | None = None
+    if not args.mock:
+        api_url = api_session.start_if_needed()
+
+    num_workers = max(1, min(args.num_workers, len(tasks)))
+    print(f"[mineru] tasks={len(tasks)} workers={num_workers} mock={args.mock} api_url={api_url or 'N/A'}")
+
+    try:
+        if num_workers == 1:
+            for sample, source_path in tasks:
                 run_mineru_on_sample(
                     project_root,
                     sample,
@@ -344,14 +518,37 @@ def main() -> int:
                     args.method,
                     args.mock,
                     args.mineru_model_source,
+                    api_url,
                     args.start_page,
                     args.end_page,
+                    normalized_root,
                 )
-                kept += 1
-                total += 1
-                if args.limit_per_split and kept >= args.limit_per_split:
-                    break
-    print(f"[mineru] done samples={total}")
+        else:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
+                futures = [
+                    executor.submit(
+                        run_mineru_on_sample,
+                        project_root,
+                        sample,
+                        source_path,
+                        output_root,
+                        args.backend,
+                        args.method,
+                        args.mock,
+                        args.mineru_model_source,
+                        api_url,
+                        args.start_page,
+                        args.end_page,
+                        normalized_root,
+                    )
+                    for sample, source_path in tasks
+                ]
+                for future in concurrent.futures.as_completed(futures):
+                    future.result()
+    finally:
+        api_session.stop()
+
+    print(f"[mineru] done samples={len(tasks)}")
     return 0
 
 

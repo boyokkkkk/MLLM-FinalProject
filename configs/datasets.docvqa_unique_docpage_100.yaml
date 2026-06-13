@@ -1,0 +1,70 @@
+datasets:
+  docvqa:
+    raw_root: data/raw/docvqa
+    processed_root: data/processed/docvqa
+    expected_files:
+      - val.json
+      - test.json
+    eval_required_files:
+      - val.json
+      - test.json
+
+normalized_schema:
+  required_fields:
+    - id
+    - dataset
+    - split
+    - question
+    - answers
+  optional_fields:
+    - image
+    - evidence
+    - metadata
+
+document_chunking:
+  processed_input_root: data/processed
+  document_output: data/processed/benchmarks/docvqa_unique_docpage_100/documents/documents.jsonl
+  chunk_output: data/processed/benchmarks/docvqa_unique_docpage_100/chunks/chunks.jsonl
+  mineru_json_root: data/interim/mineru
+  default_page_no: 1
+  max_chars_per_chunk: 900
+  overlap_chars: 120
+
+document_schema:
+  required_fields:
+    - document_id
+    - sample_id
+    - dataset
+    - split
+    - source_type
+    - page_no
+  optional_fields:
+    - image_path
+    - figure_id
+    - question
+    - answers
+    - evidence
+    - metadata
+
+chunk_schema:
+  required_fields:
+    - chunk_id
+    - document_id
+    - sample_id
+    - dataset
+    - split
+    - chunk_type
+    - text
+    - source_ref
+  optional_fields:
+    - page_no
+    - bbox
+    - image_path
+    - metadata
+
+indexing:
+  index_root: data/processed/benchmarks/docvqa_unique_docpage_100/indexes
+  text_index_dir: data/processed/benchmarks/docvqa_unique_docpage_100/indexes/text
+  vision_index_dir: data/processed/benchmarks/docvqa_unique_docpage_100/indexes/vision
+  manifest_path: data/processed/benchmarks/docvqa_unique_docpage_100/indexes/index_manifest.json
+  top_k_default: 5

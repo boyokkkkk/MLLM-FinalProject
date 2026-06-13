@@ -3,9 +3,41 @@ retrieval:
   top_k_text: 5
   top_k_vision: 5
   score_threshold: 0.0
-  rerank: false
+  rerank: true
+  query_type_aware_rerank: true
+  rerank_profile: "stronger"
+  rerank_pool_size: 20
+  diversify_results: false
+  fingerprint_duplicate_penalty: 0.10
+  docpage_duplicate_penalty: 0.08
+  same_sample_penalty: 0.04
+  dense_rerank: false
+  dense_rerank_pool_size: 12
+  dense_score_weight: 0.35
   index_path: "data/processed/retrieval/text_vectors.npy"
   metadata_path: "data/processed/retrieval/text_chunks.jsonl"
+  sparse_index_path: "data/processed/indexes/text/doc_store.json"
+  visual_index_path: "data/processed/indexes/vision/visual_store.json"
+  visual_fusion: false
+  visual_pool_size: 16
+  visual_fusion_weight: 0.45
+  visual_dense_metadata_path: "data/processed/indexes/vision/visual_descriptor_store.jsonl"
+  visual_dense_vectors_path: "data/processed/indexes/vision/visual_descriptor_vectors.json"
+  visual_dense_fusion: false
+  visual_dense_pool_size: 24
+  visual_dense_weight: 0.45
+  text_fusion_weight: 1.0
+  fusion_k: 60
+  chart_table_specialist: false
+  chart_table_visual_boost: 0.18
+  query_image_aware_rerank: false
+  query_image_pool_size: 20
+  query_image_weight: 0.35
+  generation_visual_assist: false
+  generation_visual_top_n: 2
+  generation_visual_include_descriptors: true
+  generation_visual_include_images: true
+  generation_visual_prefer_crops: true
   context_max_chars: 1200
   fallback_to_request_context: true
   default_temperature: 0.2

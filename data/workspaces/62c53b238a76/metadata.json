@@ -1,0 +1,31 @@
+{
+  "workspace_id": "62c53b238a76",
+  "scope": "workspace",
+  "dataset_name": "workspace_62c53b238a76",
+  "status": "indexed",
+  "stage": "ready",
+  "progress": 1.0,
+  "progress_label": "Workspace indexed and ready for retrieval",
+  "created_at": "2026-06-13T01:06:39Z",
+  "updated_at": "2026-06-13T01:06:39Z",
+  "assets": [
+    {
+      "asset_id": "c3aea231eb",
+      "name": "实验报告.md",
+      "stored_name": "c3aea231eb_实验报告.md",
+      "path": "D:\\MLLMProject\\data\\workspaces\\62c53b238a76\\raw\\c3aea231eb_实验报告.md",
+      "type": "md",
+      "status": "indexed",
+      "stage": "indexed",
+      "parser": "workspace_text_sections",
+      "section_count": 19,
+      "snippet": "# 模式识别HW2-基于PCA的图像压缩 学号：23336029 姓名：陈宝怡 ## 一、实验要求 1. 理解并掌握主成分分析（PCA）的基本原理。 2. 按 PCA 原理自行实现算法接口，不可以直接调用现有库封装的 PCA 接口。 3. 利用实现的 PCA 函数对图像数据进行压缩和重建。 4. 利用实现的 PCA 函数对高维数据进行低维可视化。 5. 提交实验代码、结果图和实验报告，报告需包含步骤说明与结果分析。 --- ##..."
+    }
+  ],
+  "last_error": "",
+  "counts": {
+    "documents": 1,
+    "chunks": 22,
+    "visual_items": 0
+  }
+}

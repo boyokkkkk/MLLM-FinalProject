@@ -150,3 +150,25 @@ See [docs/data_indexing.md](docs/data_indexing.md) for schema, MinerU JSON hando
 
 For end-to-end teammate onboarding and deployment steps, see [docs/deployment_init.md](docs/deployment_init.md).
 For OpenAI-compatible LLM/VLM integration steps, see [docs/model_integration_openai_compatible.md](docs/model_integration_openai_compatible.md).
+
+## Research-style evaluation
+
+This project includes a reproducible evaluation protocol for retrieval, answer quality, and citation grounding so the system can be reported as a multimodal RAG architecture rather than only a chat demo.
+
+Retrieval-only benchmark:
+```bash
+python scripts/12_run_benchmark_eval.py --suite retrieval_benchmark --datasets docvqa --splits val --limit-per-split 100
+```
+
+Full RAG benchmark (requires backend running):
+```bash
+python -m src api
+python scripts/12_run_benchmark_eval.py --suite rag_benchmark --datasets docvqa --splits val --limit-per-split 100 --mode rag
+```
+
+Outputs are written to `outputs/eval/` as:
+- sample-level `jsonl`
+- machine-readable summary `json`
+- report-ready summary `md`
+
+See [docs/evaluation_protocol.md](docs/evaluation_protocol.md) for the full evaluation design and reporting guidance.
