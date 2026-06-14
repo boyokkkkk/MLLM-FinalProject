@@ -35,6 +35,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--api-base", default="http://127.0.0.1:8000/api/v1", help="Backend API base URL for rag mode.")
     parser.add_argument("--temperature", type=float, default=0.2, help="Temperature used in rag mode.")
     parser.add_argument("--max-tokens", type=int, default=512, help="Max tokens used in rag mode.")
+    parser.add_argument("--include-query-images-in-rag", action=argparse.BooleanOptionalAction, default=False, help="Whether rag benchmark requests should upload the query image to the chat API.")
     parser.add_argument("--rerank-profile", choices=["basic", "stronger"], default="", help="Override rerank profile.")
     parser.add_argument("--diversify-results", action=argparse.BooleanOptionalAction, default=None, help="Enable or disable duplicate-aware result diversification.")
     parser.add_argument("--fingerprint-duplicate-penalty", type=float, default=-1.0, help="Override near-duplicate text penalty.")
@@ -151,6 +152,7 @@ def main() -> int:
             api_base=args.api_base,
             temperature=args.temperature,
             max_tokens=args.max_tokens,
+            include_query_images=args.include_query_images_in_rag,
             match_granularity=args.match_granularity,
         )
 
@@ -166,6 +168,7 @@ def main() -> int:
         "sample_manifest": args.sample_manifest or None,
         "match_granularity": args.match_granularity,
         "api_base": args.api_base if mode == "rag" else None,
+        "include_query_images_in_rag": args.include_query_images_in_rag if mode == "rag" else None,
         "retrieval_profile": {
             "rerank_profile": retrieval_cfg.rerank_profile,
             "query_type_aware_rerank": retrieval_cfg.query_type_aware_rerank,

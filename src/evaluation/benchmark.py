@@ -6,6 +6,7 @@ import json
 import math
 import mimetypes
 import re
+import time
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -555,6 +556,7 @@ def run_rag_eval(
     api_base: str,
     temperature: float,
     max_tokens: int,
+    include_query_images: bool = False,
     match_granularity: str = "sample",
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     records: list[dict[str, Any]] = []
@@ -564,12 +566,30 @@ def run_rag_eval(
             payload = {
                 "query": sample.question,
                 "context": [],
-                "image_data_urls": _image_to_data_url(sample.image_path),
+                "image_data_urls": _image_to_data_url(sample.image_path) if include_query_images else [],
                 "temperature": temperature,
                 "max_tokens": max_tokens,
             }
-            response = client.post(f"{api_base.rstrip('/')}/chat", json=payload)
-            response.raise_for_status()
+            response: httpx.Response | None = None
+            last_error: Exception | None = None
+            for attempt in range(3):
+                try:
+                    response = client.post(f"{api_base.rstrip('/')}/chat", json=payload)
+                    if response.status_code >= 500:
+                        raise httpx.HTTPStatusError(
+                            f"Server error {response.status_code} during rag eval",
+                            request=response.request,
+                            response=response,
+                        )
+                    response.raise_for_status()
+                    break
+                except (httpx.HTTPError, httpx.TransportError) as exc:
+                    last_error = exc
+                    if attempt >= 2:
+                        raise
+                    time.sleep(2.0 * (attempt + 1))
+            if response is None:
+                raise RuntimeError(f"RAG evaluation request failed without response: {last_error}")
             body = response.json()
             citations = body.get("citations", [])[:top_k]
             sample_flags = _sample_relevance_flags(citations, sample.expected_source_prefix)

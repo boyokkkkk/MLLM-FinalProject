@@ -359,14 +359,16 @@ def main() -> int:
 
     prepare_indexes_cmd = [args.python_bin, "scripts/17_prepare_ablation_indexes.py", "--project-root", str(project_root)]
     _run_command(prepare_indexes_cmd, env=os.environ.copy(), cwd=project_root, log_path=log_dir / "prepare_indexes.log")
+    print(f"[ablation-suite] prepared index variants -> {log_dir / 'prepare_indexes.log'}", flush=True)
 
     rows: list[dict[str, str]] = []
     rag_port = args.api_port_base
-    for spec in experiments:
+    for index, spec in enumerate(experiments, start=1):
         summary_path = output_root / f"{spec.name}.summary.json"
         status = "skipped"
         if args.skip_existing and summary_path.exists():
             status = "existing"
+            print(f"[{index}/{len(experiments)}] skip existing {spec.name}", flush=True)
         else:
             env = os.environ.copy()
             env.update(spec.env)
@@ -384,6 +386,7 @@ def main() -> int:
                 "--top-k", str(args.top_k),
                 "--run-name", spec.name,
             ] + spec.cli_args
+            print(f"[{index}/{len(experiments)}] start {spec.name} ({spec.mode})", flush=True)
             if spec.mode == "rag":
                 _run_rag_experiment(
                     spec,
@@ -398,6 +401,7 @@ def main() -> int:
             else:
                 _run_command(command, env=env, cwd=project_root, log_path=log_dir / f"{spec.name}.eval.log")
             status = "ran"
+            print(f"[{index}/{len(experiments)}] done {spec.name}", flush=True)
 
         payload = _load_summary(summary_path)
         for group in spec.groups:
