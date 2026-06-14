@@ -1,0 +1,11 @@
+document_chunking:
+  mineru_json_root: D:\MLLMProject\data\workspaces\b959dd32d5cd\mineru
+  document_output: D:\MLLMProject\data\workspaces\b959dd32d5cd\processed\documents.jsonl
+  chunk_output: D:\MLLMProject\data\workspaces\b959dd32d5cd\processed\chunks.jsonl
+  default_page_no: 1
+  max_chars_per_chunk: 900
+  overlap_chars: 120
+indexing:
+  text_index_dir: D:\MLLMProject\data\workspaces\b959dd32d5cd\indexes\text
+  vision_index_dir: D:\MLLMProject\data\workspaces\b959dd32d5cd\indexes\vision
+  manifest_path: D:\MLLMProject\data\workspaces\b959dd32d5cd\indexes\index_manifest.json

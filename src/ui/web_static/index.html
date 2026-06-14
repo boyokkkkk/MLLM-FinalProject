@@ -1,221 +1,382 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh" class="h-full">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MLLM 工作台</title>
-  <link rel="stylesheet" href="/styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MLLM Workspace</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
 </head>
-<body>
-  <div class="shell">
-    <aside class="sidebar">
-      <div class="brand-card panel">
-        <div class="eyebrow">MLLM PROJECT</div>
-        <h1>研究工作台</h1>
-        <p>上传文件，完成索引后直接对话。</p>
-      </div>
-
-      <nav class="nav panel" aria-label="Primary">
-        <button class="nav-link is-active" data-tab-target="chat">
-          <span>对话</span>
-          <small>基于工作区问答</small>
-        </button>
-        <button class="nav-link" data-tab-target="services">
-          <span>服务</span>
-          <small>接口与模型</small>
-        </button>
-        <button class="nav-link" data-tab-target="evaluation">
-          <span>评测</span>
-          <small>结果与图表</small>
-        </button>
-      </nav>
-
-      <section class="panel compact-panel">
-        <div class="section-label">系统状态</div>
-        <div class="status-row">
-          <span id="health-dot" class="status-dot"></span>
-          <strong id="health-text">连接中</strong>
-        </div>
-        <div class="metric-grid">
-          <article class="metric-card">
-            <span>文档</span>
-            <strong id="metric-docs">-</strong>
-          </article>
-          <article class="metric-card">
-            <span>分块</span>
-            <strong id="metric-chunks">-</strong>
-          </article>
-          <article class="metric-card">
-            <span>视觉</span>
-            <strong id="metric-visual">-</strong>
-          </article>
-          <article class="metric-card">
-            <span>版本</span>
-            <strong id="metric-version">-</strong>
-          </article>
-        </div>
-      </section>
-    </aside>
-
-    <main class="workspace panel">
-      <header class="hero">
-        <div>
-          <div class="eyebrow">工作区</div>
-          <h2>前端直连完整 RAG 流程</h2>
-          <p id="hero-subtitle">
-            上传、解析、索引、检索、回答都在这里完成。
-          </p>
-        </div>
-        <div class="hero-pills">
-          <span class="pill" id="pill-model">模型：-</span>
-          <span class="pill" id="pill-rerank">重排：-</span>
-          <span class="pill" id="pill-vision">视觉辅助：-</span>
-        </div>
-      </header>
-
-      <div id="app-banner" class="banner banner-hidden" role="status"></div>
-
-      <section id="tab-chat" class="tab-section is-active">
-        <div class="chat-workspace-grid">
-          <div class="dialog-column">
-            <section class="panel dialogue-shell">
-              <div class="dialogue-topbar">
-                <div>
-                  <div class="section-label">对话</div>
-                  <h3>工作区对话</h3>
-                  <p class="section-copy">
-                    围绕当前工作区连续提问。
-                  </p>
-                </div>
-                <button id="clear-history-btn" class="ghost-button" type="button">清空对话</button>
-              </div>
-
-              <div id="suggestions" class="suggestion-row" aria-label="Suggested prompts"></div>
-
-              <div class="conversation-stage">
-                <div id="conversation" class="conversation empty-state">
-                  请输入问题。
-                </div>
-              </div>
-
-              <div class="composer-dock">
-                <label class="field">
-                  <span>问题</span>
-                  <textarea id="question-input" rows="4" placeholder="例如：总结这份实验的主要结果。"></textarea>
-                </label>
-
-                <div class="form-grid compact-form-grid">
-                  <label class="field">
-                    <span>检索模式</span>
-                    <select id="scope-select">
-                      <option value="workspace-first" selected>工作区优先</option>
-                      <option value="global">全局语料</option>
-                      <option value="context-only">仅上下文</option>
-                    </select>
-                  </label>
-                  <label class="field">
-                    <span>温度</span>
-                    <input id="temperature-input" type="number" min="0" max="1.5" step="0.1" value="0.2">
-                  </label>
-                  <label class="field">
-                    <span>最大输出</span>
-                    <input id="max-tokens-input" type="number" min="64" max="4096" step="64" value="512">
-                  </label>
-                </div>
-
-                <label class="field compact-context-field">
-                  <span>补充上下文</span>
-                  <textarea id="context-input" rows="3" placeholder="可选补充说明。"></textarea>
-                </label>
-
-                <div class="button-row composer-actions">
-                  <button id="clear-workspace-btn" class="ghost-button" type="button">清空输入</button>
-                  <button id="submit-btn" class="primary-button" type="button">
-                    <span class="button-label">发送</span>
-                  </button>
-                </div>
-              </div>
-            </section>
+<body class="h-full antialiased" x-data="app()" x-init="init()" x-cloak @keydown.escape.window="closeOverlays()">
+  <div class="app-shell min-h-full px-3 py-3 md:px-4 md:py-4 lg:px-5 lg:py-5">
+    <div class="mx-auto flex min-h-[calc(100vh-1.5rem)] max-w-[1600px] flex-col gap-4 lg:min-h-[calc(100vh-2.5rem)] lg:flex-row">
+      <aside class="lg:sticky lg:top-5 lg:h-[calc(100vh-2.5rem)] lg:w-[290px] lg:flex-shrink-0 xl:w-[308px]">
+        <div class="sidebar-panel flex h-full flex-col rounded-[30px] p-4 md:p-5">
+          <div>
+            <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--muted-soft)]">MLLM Project</div>
+            <div class="display-font mt-2 text-2xl font-semibold leading-tight text-[var(--text)]">Research Workspace</div>
+            <p class="mt-4 text-sm leading-7 text-[var(--muted)]">
+              Frontend shell reused from the MultiRAG style, connected directly to your current workspace and chat backend.
+            </p>
           </div>
 
-          <aside class="context-column">
-            <section class="panel composer-panel">
-              <div class="section-header">
+          <button
+            class="mt-5 flex items-center justify-between rounded-[22px] px-4 py-3 text-left ghost-button"
+            @click="newQuery()"
+          >
+            <span>
+              <span class="block text-sm font-semibold text-[var(--text)]">新建对话</span>
+              <span class="mt-0.5 block text-xs text-[var(--muted)]">清空当前聊天并保留已上传资料</span>
+            </span>
+            <svg class="h-5 w-5 text-[var(--accent-deep)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 5v14m7-7H5" />
+            </svg>
+          </button>
+
+          <div class="mt-6 space-y-2.5">
+            <button class="nav-link w-full rounded-[24px] p-4 text-left" :class="tab === 'query' ? 'nav-link-active' : ''" @click="switchTab('query')">
+              <div class="flex items-center justify-between gap-3">
                 <div>
-                  <div class="section-label">工作区文件</div>
-                  <h3>上传并进入 RAG 流程</h3>
+                  <div class="text-sm font-semibold">Query</div>
+                  <div class="mt-1 text-xs leading-6 text-[var(--muted)]">对话问答与引用证据</div>
                 </div>
-                <button id="new-workspace-btn" class="ghost-button" type="button">新建工作区</button>
+                <svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M8 10h8m-8 4h5m-9 6h16a2 2 0 002-2V6a2 2 0 00-2-2H4a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
               </div>
+            </button>
 
-              <div id="workspace-status" class="empty-state" style="margin-top:16px;">
-                暂无工作区，请先上传文件。
+            <button class="nav-link w-full rounded-[24px] p-4 text-left" :class="tab === 'ingest' ? 'nav-link-active' : ''" @click="switchTab('ingest')">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <div class="text-sm font-semibold">Ingest</div>
+                  <div class="mt-1 text-xs leading-6 text-[var(--muted)]">上传文件并构建工作区</div>
+                </div>
+                <svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M12 16V4m0 0l-4 4m4-4l4 4m4 8.5v1.75A1.75 1.75 0 0118.25 20h-12.5A1.75 1.75 0 014 18.25V16.5" />
+                </svg>
               </div>
+            </button>
 
-              <div class="upload-grid">
-                <label class="field upload-field">
-                  <span>文档</span>
-                  <input id="text-files-input" type="file" accept=".txt,.md,.json,.csv,.tex" multiple>
-                </label>
-                <label class="field upload-field">
-                  <span>图片 / PDF</span>
-                  <input id="image-files-input" type="file" accept="image/*,.pdf" multiple>
-                </label>
+            <button class="nav-link w-full rounded-[24px] p-4 text-left" :class="tab === 'papers' ? 'nav-link-active' : ''" @click="switchTab('papers')">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <div class="text-sm font-semibold">Papers</div>
+                  <div class="mt-1 text-xs leading-6 text-[var(--muted)]">查看当前工作区资料</div>
+                </div>
+                <svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M5.25 5.25h13.5v13.5H5.25zM8.25 9h7.5M8.25 12h7.5M8.25 15h4.5" />
+                </svg>
               </div>
+            </button>
+          </div>
 
-              <div id="workspace-assets" class="asset-list empty-state">
-                暂无文件。
-              </div>
-            </section>
+          <div class="mt-6 grid grid-cols-2 gap-3">
+            <div class="metric-card rounded-[22px] p-4">
+              <div class="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-soft)]">Assets</div>
+              <div class="mt-2 text-2xl font-semibold text-[var(--text)]" x-text="workspaceAssetCount()"></div>
+            </div>
+            <div class="metric-card rounded-[22px] p-4">
+              <div class="text-[11px] uppercase tracking-[0.18em] text-[var(--muted-soft)]">Status</div>
+              <div class="mt-2 text-sm font-semibold text-[var(--text)]" x-text="workspaceStatusLabel()"></div>
+            </div>
+          </div>
 
-            <section class="panel section-panel">
-              <div class="section-label">服务信息</div>
-              <h3>接口映射</h3>
-              <div id="service-console" class="stack-list"></div>
-            </section>
-
-            <section class="panel section-panel">
-              <div class="section-label">检索配置</div>
-              <h3>当前策略</h3>
-              <div id="retrieval-console" class="stack-list"></div>
-            </section>
-          </aside>
+          <div class="mt-6 rounded-[24px] border border-[var(--line)] bg-white/34 p-4">
+            <div class="section-kicker">System</div>
+            <div class="mt-3 flex items-center gap-2 text-sm text-[var(--text)]">
+              <span class="inline-block h-2.5 w-2.5 rounded-full" :class="healthOk ? 'bg-emerald-500' : 'bg-amber-500'"></span>
+              <span x-text="healthLabel()"></span>
+            </div>
+            <div class="mt-3 text-xs leading-6 text-[var(--muted)]">
+              <div>Corpus docs: <span x-text="bootstrap.corpus?.documents ?? '-'"></span></div>
+              <div>Corpus chunks: <span x-text="bootstrap.corpus?.chunks ?? '-'"></span></div>
+              <div>Version: <span x-text="bootstrap.app?.version ?? '-'"></span></div>
+            </div>
+          </div>
         </div>
-      </section>
+      </aside>
 
-      <section id="tab-services" class="tab-section">
-        <div class="section-panel panel">
-          <div class="section-label">服务</div>
-          <h3>后端服务概览</h3>
+      <div class="min-w-0 flex-1">
+        <div class="workspace-panel min-h-[calc(100vh-1.5rem)] rounded-[34px] lg:min-h-[calc(100vh-2.5rem)]">
+          <div class="flex flex-col gap-4 border-b border-[var(--line)] px-4 py-4 md:flex-row md:items-center md:justify-between md:px-6 lg:px-8">
+            <div>
+              <div class="section-kicker">Workspace</div>
+              <div class="display-font mt-2 text-[1.8rem] font-semibold leading-tight md:text-[2rem]">Multi-modal research assistant</div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2.5">
+              <div class="toolbar-pill rounded-full px-3.5 py-2 text-xs font-medium" x-text="currentTabLabel()"></div>
+              <div class="toolbar-pill rounded-full px-3.5 py-2 text-xs font-medium" x-text="workspaceSummaryPill()"></div>
+              <div class="toolbar-pill rounded-full px-3.5 py-2 text-xs font-medium">Current backend connected</div>
+            </div>
+          </div>
+
+          <main class="px-4 pb-4 pt-5 md:px-6 md:pb-6 lg:px-8 lg:pb-8 lg:pt-7">
+            <template x-if="tab === 'query'">
+              <section>
+                <div class="mx-auto max-w-6xl">
+                  <div class="text-center" x-show="showQueryIntro()">
+                    <div class="section-kicker">Query</div>
+                    <h1 class="display-font mx-auto mt-4 max-w-3xl text-4xl font-semibold leading-[1.25] md:text-5xl">
+                      以工作区为中心的多模态对话
+                    </h1>
+                    <p class="mx-auto mt-4 max-w-2xl text-sm leading-8 text-[var(--muted)] md:text-base">
+                      保留你现有的后端检索与工作区逻辑，用 MultiRAG 风格的客户端壳子来做更完整的问答体验。
+                    </p>
+                    <div class="mt-8 flex flex-wrap justify-center gap-2.5">
+                      <template x-for="prompt in querySuggestions" :key="prompt">
+                        <button class="chip-btn rounded-full px-4 py-2 text-sm" @click="setQuestion(prompt)" x-text="prompt"></button>
+                      </template>
+                    </div>
+                  </div>
+
+                  <div class="mt-8 space-y-4" x-show="messages.length">
+                    <template x-for="(message, index) in messages" :key="index">
+                      <article class="rounded-[28px] border border-[var(--line)] p-5 md:p-6" :class="message.role === 'user' ? 'bg-white/58 ml-auto max-w-3xl' : 'answer-card max-w-5xl'">
+                        <div class="flex items-center justify-between gap-3">
+                          <div class="section-kicker" x-text="message.role === 'user' ? 'You' : 'Assistant'"></div>
+                          <div class="text-xs text-[var(--muted)]" x-show="message.model" x-text="message.model"></div>
+                        </div>
+                        <div class="mt-4 text-sm leading-8 text-[var(--text)]" x-show="message.role === 'user'" x-text="message.content"></div>
+                        <div class="answer-prose mt-4" x-show="message.role === 'assistant'" x-html="renderMessageAnswer(message, index)"></div>
+
+                        <div class="mt-5 grid gap-3" x-show="message.role === 'assistant' && message.citations && message.citations.length">
+                          <div class="section-kicker">Citations</div>
+                          <template x-for="(citation, ci) in message.citations" :key="citationKey(citation, ci)">
+                            <button class="text-left rounded-[20px] border border-[var(--line)] bg-white/52 px-4 py-3 transition hover:border-[var(--line-strong)] hover:bg-white/72" @click="openCitation(citation, ci)">
+                              <div class="flex items-center justify-between gap-3 text-xs text-[var(--muted)]">
+                                <span x-text="'#' + (ci + 1) + ' ' + sourceLabel(citation)"></span>
+                                <span x-text="citationLocator(citation) || (citation.page ? ('p.' + citation.page) : 'workspace')"></span>
+                              </div>
+                              <div class="mt-2 text-sm leading-7 text-[var(--text)]" x-text="citation.snippet || ''"></div>
+                            </button>
+                          </template>
+                        </div>
+                      </article>
+                    </template>
+                  </div>
+
+                  <div class="composer-card mt-8 rounded-[30px] p-4 md:p-5">
+                    <textarea
+                      class="composer-field min-h-[88px]"
+                      rows="3"
+                      placeholder="围绕你上传的材料提问，例如：回答图中的所有题目；继续解释第二题；总结这篇文档的核心结论。"
+                      x-model="q.question"
+                      @keydown.enter.exact.prevent="runQuery()"
+                    ></textarea>
+
+                    <div class="mt-4 grid grid-cols-1 gap-3 border-t border-[var(--line)] pt-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+                      <div class="space-y-3">
+                        <textarea
+                          class="input-base min-h-[88px] rounded-[22px] px-4 py-3 text-sm leading-7"
+                          rows="3"
+                          placeholder="可选：补充本轮临时上下文。发送成功后会自动清空。"
+                          x-model="q.context"
+                        ></textarea>
+
+                        <div class="flex flex-wrap items-center gap-2.5">
+                          <label class="chip-btn rounded-full px-4 py-2 text-sm">
+                            <input type="file" accept="image/*" multiple class="hidden" @change="handleImageSelect($event)">
+                            附加临时图片
+                          </label>
+                          <template x-for="(image, ii) in q.images" :key="ii">
+                            <span class="toolbar-pill rounded-full px-3 py-1.5 text-xs font-medium">
+                              <span x-text="image.name"></span>
+                              <button class="ml-2 text-[var(--accent-deep)]" @click="removeImage(ii)">×</button>
+                            </span>
+                          </template>
+                        </div>
+                      </div>
+
+                      <div class="space-y-3">
+                        <div class="grid grid-cols-2 gap-2.5">
+                          <div>
+                            <label class="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--muted-soft)]">Scope</label>
+                            <select class="select-base h-10 rounded-2xl px-3 text-sm" x-model="q.scope">
+                              <option value="workspace-first">Workspace first</option>
+                              <option value="global">Global corpus</option>
+                              <option value="context-only">Context only</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label class="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--muted-soft)]">Temp</label>
+                            <input type="number" min="0" max="1.5" step="0.1" class="input-base h-10 rounded-2xl px-3 text-sm" x-model.number="q.temperature">
+                          </div>
+                        </div>
+
+                        <div>
+                          <label class="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--muted-soft)]">Max tokens</label>
+                          <input type="number" min="128" max="4096" step="64" class="input-base h-10 rounded-2xl px-3 text-sm" x-model.number="q.max_tokens">
+                        </div>
+
+                        <div class="flex items-center justify-between gap-3">
+                          <div class="text-xs leading-6 text-[var(--muted)]" x-text="queryStatusLabel()"></div>
+                          <button class="send-button flex h-12 w-12 items-center justify-center rounded-full" @click="runQuery()" :disabled="q.loading || !q.question.trim()">
+                            <svg x-show="!q.loading" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7-7l7 7-7 7" />
+                            </svg>
+                            <svg x-show="q.loading" class="spinner h-5 w-5" fill="none" viewBox="0 0 24 24">
+                              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </template>
+
+            <template x-if="tab === 'ingest'">
+              <section>
+                <div class="mx-auto max-w-5xl">
+                  <div class="mb-6">
+                    <div class="section-kicker">Ingest</div>
+                    <h2 class="display-font mt-4 text-4xl font-semibold leading-tight md:text-[2.85rem]">上传并构建工作区</h2>
+                    <p class="mt-4 max-w-2xl text-sm leading-8 text-[var(--muted)] md:text-base">
+                      这里直接接你现有的 workspace ingestion 流程，不改后端主链路。
+                    </p>
+                  </div>
+
+                  <div class="soft-card rounded-[30px] p-5 md:p-6">
+                    <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <div class="section-kicker">Workspace status</div>
+                        <div class="mt-2 text-xl font-semibold text-[var(--text)]" x-text="workspace?.workspace_id || 'No workspace yet'"></div>
+                        <div class="mt-2 text-sm leading-7 text-[var(--muted)]" x-text="workspace?.progress_label || 'Upload files to begin.'"></div>
+                      </div>
+                      <div class="flex flex-wrap gap-2">
+                        <div class="toolbar-pill rounded-full px-3.5 py-2 text-xs font-medium" x-text="'Status: ' + workspaceStatusLabel()"></div>
+                        <div class="toolbar-pill rounded-full px-3.5 py-2 text-xs font-medium" x-text="'Docs: ' + (workspace?.counts?.documents ?? 0)"></div>
+                        <div class="toolbar-pill rounded-full px-3.5 py-2 text-xs font-medium" x-text="'Chunks: ' + (workspace?.counts?.chunks ?? 0)"></div>
+                      </div>
+                    </div>
+
+                    <div class="mt-5">
+                      <div class="h-2.5 overflow-hidden rounded-full bg-[rgba(91,73,52,0.12)]">
+                        <div class="h-full rounded-full bg-[linear-gradient(90deg,var(--accent),var(--accent-deep))]" :style="'width:' + workspaceProgressPercent() + '%'"></div>
+                      </div>
+                    </div>
+
+                    <div class="mt-6 flex flex-wrap items-center gap-3">
+                      <label class="chip-btn rounded-full px-4 py-2 text-sm">
+                        <input type="file" class="hidden" accept=".txt,.md,.markdown,.json,.csv,.tex,.pdf,image/*" multiple @change="uploadWorkspaceFiles($event)">
+                        选择文件上传
+                      </label>
+                      <button class="ghost-button rounded-full px-4 py-2 text-sm" @click="resetWorkspace()">重置工作区</button>
+                      <div class="text-xs leading-6 text-[var(--muted)]">支持文本文档、PDF 与图片；图片/PDF 继续走你现有 MinerU 流程。</div>
+                    </div>
+
+                    <div class="mt-6 grid gap-3" x-show="workspace && workspace.assets && workspace.assets.length">
+                      <template x-for="asset in workspace.assets" :key="asset.asset_id">
+                        <div class="rounded-[20px] border border-[var(--line)] bg-white/52 px-4 py-4">
+                          <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                            <div class="min-w-0">
+                              <div class="text-sm font-semibold text-[var(--text)]" x-text="asset.name"></div>
+                              <div class="mt-1 text-xs leading-6 text-[var(--muted)]">
+                                <span x-text="asset.status"></span>
+                                <span> · </span>
+                                <span x-text="asset.parser || 'pending'"></span>
+                                <span x-show="asset.section_count"> · sections <span x-text="asset.section_count"></span></span>
+                              </div>
+                              <div class="mt-2 text-sm leading-7 text-[var(--muted)]" x-text="asset.snippet || ''"></div>
+                            </div>
+                            <button class="ghost-button rounded-full px-4 py-2 text-sm" @click="removeAsset(asset.asset_id)" :disabled="workspace?.status === 'processing'">删除</button>
+                          </div>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </template>
+
+            <template x-if="tab === 'papers'">
+              <section>
+                <div class="mx-auto max-w-5xl">
+                  <div class="mb-6">
+                    <div class="section-kicker">Papers</div>
+                    <h2 class="display-font mt-4 text-4xl font-semibold leading-tight md:text-[2.85rem]">当前工作区资料</h2>
+                    <p class="mt-4 max-w-2xl text-sm leading-8 text-[var(--muted)] md:text-base">
+                      沿用 MultiRAG 的资料浏览思路，这里展示当前 workspace 中已经上传的材料。
+                    </p>
+                  </div>
+
+                  <div class="soft-card rounded-[30px] p-5 md:p-6" x-show="workspace && workspace.assets && workspace.assets.length">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <div class="section-kicker">Workspace library</div>
+                        <div class="mt-2 text-xl font-semibold text-[var(--text)]">Indexed assets</div>
+                      </div>
+                      <div class="toolbar-pill rounded-full px-3.5 py-2 text-xs font-medium" x-text="workspaceAssetCount() + ' assets'"></div>
+                    </div>
+
+                    <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      <template x-for="(asset, index) in (workspace?.assets || [])" :key="asset.asset_id">
+                        <div class="rounded-[18px] border border-[var(--line)] bg-white/42 px-4 py-4 transition-colors duration-200 hover:border-[var(--line-strong)] hover:bg-white/68">
+                          <div class="flex items-center gap-3">
+                            <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[11px] font-semibold text-[var(--accent-deep)]" x-text="index + 1"></div>
+                            <div class="min-w-0">
+                              <div class="truncate text-sm font-semibold text-[var(--text)]" :title="asset.name" x-text="asset.name"></div>
+                              <div class="mt-1 text-xs text-[var(--muted)]">
+                                <span x-text="asset.type || 'file'"></span>
+                                <span> · </span>
+                                <span x-text="asset.status"></span>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="mt-3 text-sm leading-7 text-[var(--muted)] content-clamp-compact" x-text="asset.snippet || 'No preview available yet.'"></div>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+
+                  <div class="rounded-[28px] border border-dashed border-[var(--line)] bg-white/32 px-5 py-8 text-sm leading-7 text-[var(--muted)]" x-show="!workspace || !workspace.assets || !workspace.assets.length">
+                    还没有可展示的资料。先切到 Ingest 上传文件，完成后这里会显示当前工作区的内容。
+                  </div>
+                </div>
+              </section>
+            </template>
+          </main>
         </div>
-        <div id="service-cards" class="service-card-grid"></div>
-      </section>
+      </div>
+    </div>
+  </div>
 
-      <section id="tab-evaluation" class="tab-section">
-        <div class="section-panel panel">
-          <div class="section-label">评测</div>
-          <h3>评测结果</h3>
+  <div class="modal-backdrop flex items-center justify-center p-3 md:p-6" x-show="citationModal.open" x-transition.opacity.duration.180ms @click.self="closeCitationModal()">
+    <div class="modal-panel w-full max-w-4xl rounded-[30px] p-5 md:p-6">
+      <div class="flex items-start justify-between gap-4 border-b border-[var(--line)] pb-4">
+        <div class="min-w-0">
+          <div class="section-kicker">Citation</div>
+          <div class="mt-2 text-xl font-semibold text-[var(--text)]" x-text="citationModal.title"></div>
+          <div class="mt-2 flex flex-wrap gap-2 text-xs text-[var(--muted)]">
+            <span class="toolbar-pill rounded-full px-3 py-1.5" x-text="sourceLabel(citationModal.citation)"></span>
+            <span class="toolbar-pill rounded-full px-3 py-1.5" x-show="citationModal.citation?.page" x-text="'p. ' + citationModal.citation?.page"></span>
+            <span class="toolbar-pill rounded-full px-3 py-1.5" x-show="citationModal.citation?.figure_id" x-text="citationModal.citation?.figure_id"></span>
+            <span class="toolbar-pill rounded-full px-3 py-1.5" x-show="!citationModal.citation?.figure_id && citationModal.citation?.figure_no" x-text="'fig-' + citationModal.citation?.figure_no"></span>
+            <span class="toolbar-pill rounded-full px-3 py-1.5" x-show="citationModal.citation?.chunk_type" x-text="citationModal.citation?.chunk_type"></span>
+          </div>
         </div>
+        <button class="ghost-button flex h-10 w-10 items-center justify-center rounded-full" @click="closeCitationModal()" aria-label="关闭">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      </div>
 
-        <div id="evaluation-summary" class="summary-grid"></div>
-
-        <div class="eval-grid">
-          <section class="panel section-panel">
-            <div class="section-label">主要结果</div>
-            <div id="main-results-table" class="table-wrap empty-state">未找到结果表。</div>
-          </section>
-          <section class="panel section-panel">
-            <div class="section-label">错误分布</div>
-            <div id="error-breakdown-table" class="table-wrap empty-state">未找到错误表。</div>
-          </section>
+      <div class="mt-5 max-h-[70vh] overflow-y-auto pr-1">
+        <div class="rounded-[24px] border border-[var(--line)] bg-white/58 px-4 py-4 text-sm leading-8 text-[var(--text)]" x-html="renderCitationSnippet()"></div>
+        <div class="mt-5" x-show="citationModal.citation?.image_data_url">
+          <img :src="citationModal.citation?.image_data_url" alt="citation image" class="w-full rounded-[24px] border border-[var(--line)]">
         </div>
-
-        <section class="panel section-panel">
-          <div class="section-label">图表</div>
-          <div id="figure-gallery" class="figure-gallery empty-state">未找到图表。</div>
-        </section>
-      </section>
-    </main>
+      </div>
+    </div>
   </div>
 
   <script src="/app.js"></script>

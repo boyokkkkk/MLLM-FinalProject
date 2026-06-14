@@ -1,0 +1,27 @@
+{
+  "built_at": "2026-06-14T06:53:48.878785+00:00",
+  "counts": {
+    "chunks": 10,
+    "documents": 1,
+    "text_terms": 136,
+    "visual_items": 10
+  },
+  "dataset_version": "6c2f113201dbe87b6b6a",
+  "index_version": "offline-bm25-lite-v1",
+  "inputs": {
+    "chunks": "D:\\MLLMProject\\data\\workspaces\\b959dd32d5cd\\processed\\chunks.jsonl",
+    "documents": "D:\\MLLMProject\\data\\workspaces\\b959dd32d5cd\\processed\\documents.jsonl"
+  },
+  "notes": [
+    "Text index uses local tokenization and sparse term frequencies over block chunks.",
+    "Vision index is a metadata store for image/table/figure/formula chunks; embedding backends can replace it later.",
+    "Vector databases should store embeddings keyed by chunk_id and keep block_id/page_no/bbox/source_path for backtracking."
+  ],
+  "outputs": {
+    "text_doc_store": "D:\\MLLMProject\\data\\workspaces\\b959dd32d5cd\\indexes\\text\\doc_store.json",
+    "text_document_frequency": "D:\\MLLMProject\\data\\workspaces\\b959dd32d5cd\\indexes\\text\\document_frequency.json",
+    "text_postings": "D:\\MLLMProject\\data\\workspaces\\b959dd32d5cd\\indexes\\text\\postings.json",
+    "vision_store": "D:\\MLLMProject\\data\\workspaces\\b959dd32d5cd\\indexes\\vision\\visual_store.json"
+  },
+  "python": "3.13.2"
+}

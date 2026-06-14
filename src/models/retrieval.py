@@ -60,6 +60,7 @@ class Evidence:
     image_path: str | None = None
     source_path: str | None = None
     bbox: list[int] | None = None
+    inline_image_data_url: str | None = None
 
 
 class BaseTextRetriever(ABC):

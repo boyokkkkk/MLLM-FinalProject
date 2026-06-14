@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import shutil
 import subprocess
 import sys
@@ -19,6 +20,23 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 WORKSPACES_ROOT = PROJECT_ROOT / "data" / "workspaces"
 TEXT_EXTENSIONS = {".txt", ".md", ".markdown", ".json", ".csv", ".tex"}
 MINERU_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".webp", ".bmp"}
+
+EXHAUSTIVE_QUERY_MARKERS = (
+    "all questions",
+    "all the questions",
+    "every question",
+    "solve all",
+    "answer all",
+    "图中所有题目",
+    "图片中的所有题目",
+    "回答图中的所有题目",
+    "回答图片中的所有题目",
+    "这张图里的所有题目",
+    "所有题目",
+)
+HTML_TAG_RE = re.compile(r"<[^>]+>")
+NON_WORD_RE = re.compile(r"[^A-Za-z0-9\u4e00-\u9fff]+")
+DEFINITION_QUERY_RE = re.compile(r"(?:什么是|是什么|解释|请解释|说明|介绍)")
 
 
 def _now_ts() -> float:
@@ -62,6 +80,113 @@ def _term_frequency(tokens: list[str]) -> dict[str, float]:
     return tf
 
 
+def _title_overlap_score(query: str, title: str | None) -> float:
+    if not title:
+        return 0.0
+    query_terms = set(_tokenize_workspace(query))
+    title_terms = set(_tokenize_workspace(title))
+    if not query_terms or not title_terms:
+        return 0.0
+    overlap = len(query_terms & title_terms)
+    if overlap <= 0:
+        return 0.0
+    score = float(overlap)
+    if title.strip() and title.strip() in query:
+        score += 3.0
+    return score
+
+
+def _normalize_match_text(text: str | None) -> str:
+    if not text:
+        return ""
+    stripped = HTML_TAG_RE.sub("", text)
+    return NON_WORD_RE.sub("", stripped).lower()
+
+
+def _is_definition_like_query(query: str) -> bool:
+    value = (query or "").strip()
+    if not value:
+        return False
+    lowered = value.lower()
+    if any(marker in lowered for marker in ("what is", "explain", "define", "meaning of")):
+        return True
+    return bool(DEFINITION_QUERY_RE.search(value))
+
+
+def _extract_focus_phrases(query: str) -> list[str]:
+    raw = HTML_TAG_RE.sub("", query or "")
+    if not raw.strip():
+        return []
+
+    focus = raw.strip()
+    leading_match = re.search(r"(?:解释|请解释|说明|介绍)(.+)", focus)
+    if leading_match:
+        focus = leading_match.group(1)
+    trailing_match = re.search(r"(.+?)(?:是什么|是啥|什么意思|指什么)", focus)
+    if trailing_match:
+        focus = trailing_match.group(1)
+
+    focus = focus.strip(" ：:，。,？?！!；;（）()[]【】")
+    focus_parts = [part.strip() for part in re.split(r"[中的里关于对与和及]", focus) if part.strip()]
+    tail = focus_parts[-1] if focus_parts else focus
+    phrases: list[str] = []
+
+    latin_terms = [term.lower() for term in re.findall(r"[A-Za-z0-9]{3,}", tail)]
+    phrases.extend(latin_terms)
+
+    chinese_terms = re.findall(r"[\u4e00-\u9fff]{2,}", tail)
+    for term in chinese_terms:
+        if len(term) <= 8:
+            phrases.append(term)
+            continue
+        for size in range(min(8, len(term)), 1, -1):
+            phrases.append(term[-size:])
+
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for phrase in sorted(phrases, key=len, reverse=True):
+        if phrase and phrase not in seen:
+            seen.add(phrase)
+            ordered.append(phrase)
+    if not ordered:
+        fallback = _normalize_match_text(tail)
+        if fallback:
+            ordered.append(fallback[-8:])
+    return ordered[:8]
+
+
+def _query_match_bonus(query: str, text: str | None, title: str | None = None) -> float:
+    normalized_text = _normalize_match_text(text)
+    normalized_title = _normalize_match_text(title)
+    if not normalized_text and not normalized_title:
+        return 0.0
+
+    bonus = 0.0
+    definition_like = _is_definition_like_query(query)
+    raw_text_compact = "".join((text or "").split())
+    for phrase in _extract_focus_phrases(query):
+        if len(phrase) < 2:
+            continue
+        if phrase in normalized_text:
+            bonus += 0.65 + min(len(phrase), 8) * 0.05
+            if definition_like and (
+                f"{phrase}是" in normalized_text
+                or f"{phrase}:" in raw_text_compact
+                or f"{phrase}：" in raw_text_compact
+            ):
+                bonus += 0.45
+        elif phrase in normalized_title:
+            bonus += 0.3 + min(len(phrase), 8) * 0.03
+    return bonus
+
+
+def _looks_like_brief_heading_text(text: str | None) -> bool:
+    normalized = _normalize_match_text(text)
+    if not normalized:
+        return False
+    return len(normalized) <= 14 and "：" not in (text or "") and ":" not in (text or "")
+
+
 def _split_markdown_sections(text: str) -> list[tuple[str, str]]:
     lines = text.splitlines()
     sections: list[tuple[str, str]] = []
@@ -97,6 +222,13 @@ def _summarize_text(text: str, limit: int = 220) -> str:
     if len(normalized) <= limit:
         return normalized
     return normalized[: limit - 3].rstrip() + "..."
+
+
+def _is_exhaustive_workspace_query(query: str) -> bool:
+    value = (query or "").strip().lower()
+    if not value:
+        return False
+    return any(marker in value for marker in EXHAUSTIVE_QUERY_MARKERS)
 
 
 class WorkspaceManager:
@@ -263,25 +395,93 @@ class WorkspaceManager:
             for term in tf:
                 doc_frequency[term] = doc_frequency.get(term, 0) + 1
         idf = {term: 1.0 + math.log((n_docs + 1) / (freq + 1)) for term, freq in doc_frequency.items()}
+        exhaustive_query = _is_exhaustive_workspace_query(query)
+        candidate_limit = max(top_k, 12)
         ranked = rank_sparse_chunks(
             query=query,
             doc_store=doc_store,
             idf=idf,
-            limit=top_k,
+            limit=max(candidate_limit, 14 if exhaustive_query else candidate_limit),
             score_threshold=0.0,
             rerank=True,
             query_type_aware_rerank=True,
             rerank_profile="stronger",
-            rerank_pool_size=max(top_k, 12),
+            rerank_pool_size=max(candidate_limit, 16),
             diversify_results=True,
         )
+        if ranked:
+            reranked_with_titles: list[tuple[float, dict[str, Any]]] = []
+            for base_score, item in ranked:
+                metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+                section_title = str(metadata.get("section_title") or "").strip() or None
+                raw_type = str(metadata.get("raw_type") or "").strip().lower()
+                text = str(item.get("text") or "")
+                definition_like = _is_definition_like_query(query)
+                title_bonus = _title_overlap_score(query, section_title)
+                phrase_bonus = _query_match_bonus(query, text, section_title)
+                boilerplate_penalty = 0.0
+                if raw_type == "footer" and phrase_bonus <= 0.0:
+                    boilerplate_penalty += 0.08
+                if raw_type == "header":
+                    boilerplate_penalty += 0.04
+                if definition_like and phrase_bonus > 0.0 and _looks_like_brief_heading_text(text):
+                    boilerplate_penalty += 0.42
+                reranked_with_titles.append(
+                    (base_score + (title_bonus * 0.18) + phrase_bonus - boilerplate_penalty, item)
+                )
+            reranked_with_titles.sort(key=lambda pair: pair[0], reverse=True)
+            ranked = reranked_with_titles
+
+        selected_items = [item for _, item in ranked[:top_k]]
+        expand_same_page = exhaustive_query
+        anchor_item = ranked[0][1] if ranked else None
+
+        if not expand_same_page and ranked:
+            best_item_score, best_item = ranked[0]
+            best_meta = best_item.get("metadata") if isinstance(best_item.get("metadata"), dict) else {}
+            best_title = str(best_meta.get("section_title") or "").strip() or None
+            title_match_score = _title_overlap_score(query, best_title)
+            query_value = (query or "").strip()
+            if title_match_score > 0 or (best_item_score > 0.35 and len(query_value) >= 6):
+                expand_same_page = True
+                anchor_item = best_item
+
+        if expand_same_page and anchor_item:
+            best_item = anchor_item
+            best_source_path = str(best_item.get("source_path", "")).strip()
+            best_page_no = best_item.get("page_no")
+            related_items: list[dict[str, Any]] = []
+            for candidate in doc_store.values():
+                same_source = str(candidate.get("source_path", "")).strip() == best_source_path
+                same_page = candidate.get("page_no") == best_page_no
+                if same_source and same_page:
+                    related_items.append(candidate)
+            related_items.sort(
+                key=lambda item: (
+                    str((item.get("metadata") or {}).get("section_title", "")),
+                    int(item.get("block_index") or 0),
+                    int(item.get("part_index") or 0),
+                )
+            )
+            selected_ids = {str(item.get("chunk_id")) for item in selected_items}
+            for candidate in related_items:
+                candidate_id = str(candidate.get("chunk_id"))
+                if candidate_id in selected_ids:
+                    continue
+                selected_items.append(candidate)
+                selected_ids.add(candidate_id)
+                if len(selected_items) >= max(top_k, 10 if exhaustive_query else max(top_k, 6)):
+                    break
         evidences: list[Evidence] = []
-        for score, item in ranked[:top_k]:
+        ranked_score_map = {str(item.get("chunk_id")): score for score, item in ranked}
+        output_limit = max(top_k, 10) if exhaustive_query else (max(top_k, 6) if expand_same_page else top_k)
+        for item in selected_items[:output_limit]:
             text = str(item.get("text", "")).strip()
             metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
             section_title = str(metadata.get("section_title") or "").strip() or None
             page_no = item.get("page_no")
             page = int(page_no) if page_no not in (None, "") else None
+            score = float(ranked_score_map.get(str(item.get("chunk_id")), 1.0))
             evidences.append(
                 Evidence(
                     chunk_id=str(item.get("chunk_id")),

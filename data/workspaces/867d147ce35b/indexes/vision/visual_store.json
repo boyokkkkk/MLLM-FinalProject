@@ -1,0 +1,222 @@
+[
+  {
+    "bbox": [
+      6,
+      22,
+      986,
+      212
+    ],
+    "block_id": "block-0000",
+    "block_index": 0,
+    "caption": "对于一个拥有n个样本和m个特征的训练数据集，我们使用线性回归模型进行拟合。样本的特征矩阵为X（一个n×（m＋1)矩阵，已包含偏置项），对应的真实值标签为向量y（一个n×1向量）。模型的参数为向量w（一个(m+1)×1向量）。",
+    "chunk_id": "chk-9de40f9f30bb3ca5",
+    "chunk_type": "text",
+    "dataset": "workspace_867d147ce35b",
+    "document_id": "doc-1376aba4c3df7fb8",
+    "image_path": "D:\\MLLMProject\\data\\workspaces\\867d147ce35b\\raw\\711e0f1081_理论作业1.jpg",
+    "page_no": 1,
+    "part_index": 0,
+    "sample_id": "711e0f1081",
+    "source_path": "D:\\MLLMProject\\data\\workspaces\\867d147ce35b\\raw\\711e0f1081_理论作业1.jpg",
+    "source_ref": "workspace_867d147ce35b/workspace/711e0f1081#page=1#block=block-0000",
+    "split": "workspace"
+  },
+  {
+    "bbox": [
+      6,
+      266,
+      382,
+      315
+    ],
+    "block_id": "block-0001",
+    "block_index": 1,
+    "caption": "请根据课件内容，写出以下核心公式：",
+    "chunk_id": "chk-46fd886d3e551694",
+    "chunk_type": "text",
+    "dataset": "workspace_867d147ce35b",
+    "document_id": "doc-1376aba4c3df7fb8",
+    "image_path": "D:\\MLLMProject\\data\\workspaces\\867d147ce35b\\raw\\711e0f1081_理论作业1.jpg",
+    "page_no": 1,
+    "part_index": 0,
+    "sample_id": "711e0f1081",
+    "source_path": "D:\\MLLMProject\\data\\workspaces\\867d147ce35b\\raw\\711e0f1081_理论作业1.jpg",
+    "source_ref": "workspace_867d147ce35b/workspace/711e0f1081#page=1#block=block-0001",
+    "split": "workspace"
+  },
+  {
+    "bbox": [
+      21,
+      353,
+      330,
+      399
+    ],
+    "block_id": "block-0002",
+    "block_index": 2,
+    "caption": "1．代价函数 (Cost Function)",
+    "chunk_id": "chk-44a55a750028b044",
+    "chunk_type": "text",
+    "dataset": "workspace_867d147ce35b",
+    "document_id": "doc-1376aba4c3df7fb8",
+    "image_path": "D:\\MLLMProject\\data\\workspaces\\867d147ce35b\\raw\\711e0f1081_理论作业1.jpg",
+    "page_no": 1,
+    "part_index": 0,
+    "sample_id": "711e0f1081",
+    "source_path": "D:\\MLLMProject\\data\\workspaces\\867d147ce35b\\raw\\711e0f1081_理论作业1.jpg",
+    "source_ref": "workspace_867d147ce35b/workspace/711e0f1081#page=1#block=block-0002",
+    "split": "workspace"
+  },
+  {
+    "bbox": [
+      58,
+      418,
+      967,
+      471
+    ],
+    "block_id": "block-0003",
+    "block_index": 3,
+    "caption": "请写出线性回归模型中基于均方误差(Mean Squared Error)的代价函数L(w）的矩阵形式。",
+    "chunk_id": "chk-4f1f3c7aadd0ac03",
+    "chunk_type": "text",
+    "dataset": "workspace_867d147ce35b",
+    "document_id": "doc-1376aba4c3df7fb8",
+    "image_path": "D:\\MLLMProject\\data\\workspaces\\867d147ce35b\\raw\\711e0f1081_理论作业1.jpg",
+    "page_no": 1,
+    "part_index": 0,
+    "sample_id": "711e0f1081",
+    "source_path": "D:\\MLLMProject\\data\\workspaces\\867d147ce35b\\raw\\711e0f1081_理论作业1.jpg",
+    "source_ref": "workspace_867d147ce35b/workspace/711e0f1081#page=1#block=block-0003",
+    "split": "workspace"
+  },
+  {
+    "bbox": [
+      21,
+      505,
+      336,
+      555
+    ],
+    "block_id": "block-0004",
+    "block_index": 4,
+    "caption": "2．数值解 (Normal Equation)",
+    "chunk_id": "chk-0977358d2563ba0f",
+    "chunk_type": "text",
+    "dataset": "workspace_867d147ce35b",
+    "document_id": "doc-1376aba4c3df7fb8",
+    "image_path": "D:\\MLLMProject\\data\\workspaces\\867d147ce35b\\raw\\711e0f1081_理论作业1.jpg",
+    "page_no": 1,
+    "part_index": 0,
+    "sample_id": "711e0f1081",
+    "source_path": "D:\\MLLMProject\\data\\workspaces\\867d147ce35b\\raw\\711e0f1081_理论作业1.jpg",
+    "source_ref": "workspace_867d147ce35b/workspace/711e0f1081#page=1#block=block-0004",
+    "split": "workspace"
+  },
+  {
+    "bbox": [
+      52,
+      574,
+      982,
+      692
+    ],
+    "block_id": "block-0005",
+    "block_index": 5,
+    "caption": "当代价函数L(w)是凸函数时，其最优解 $\\pmb { w } ^ { * }$ 可以通过令其梯度为零找到。请写出该最优解的矩阵形式表达式（也称为正规方程解）。",
+    "chunk_id": "chk-e83d887fd3e813d8",
+    "chunk_type": "text",
+    "dataset": "workspace_867d147ce35b",
+    "document_id": "doc-1376aba4c3df7fb8",
+    "image_path": "D:\\MLLMProject\\data\\workspaces\\867d147ce35b\\raw\\711e0f1081_理论作业1.jpg",
+    "page_no": 1,
+    "part_index": 0,
+    "sample_id": "711e0f1081",
+    "source_path": "D:\\MLLMProject\\data\\workspaces\\867d147ce35b\\raw\\711e0f1081_理论作业1.jpg",
+    "source_ref": "workspace_867d147ce35b/workspace/711e0f1081#page=1#block=block-0005",
+    "split": "workspace"
+  },
+  {
+    "bbox": [
+      21,
+      730,
+      367,
+      775
+    ],
+    "block_id": "block-0006",
+    "block_index": 6,
+    "caption": "3．梯度下降(Gradient Descent)",
+    "chunk_id": "chk-d0cd70de5a44f48a",
+    "chunk_type": "text",
+    "dataset": "workspace_867d147ce35b",
+    "document_id": "doc-1376aba4c3df7fb8",
+    "image_path": "D:\\MLLMProject\\data\\workspaces\\867d147ce35b\\raw\\711e0f1081_理论作业1.jpg",
+    "page_no": 1,
+    "part_index": 0,
+    "sample_id": "711e0f1081",
+    "source_path": "D:\\MLLMProject\\data\\workspaces\\867d147ce35b\\raw\\711e0f1081_理论作业1.jpg",
+    "source_ref": "workspace_867d147ce35b/workspace/711e0f1081#page=1#block=block-0006",
+    "split": "workspace"
+  },
+  {
+    "bbox": [
+      56,
+      794,
+      606,
+      844
+    ],
+    "block_id": "block-0007",
+    "block_index": 7,
+    "caption": "梯度下降是一种通过迭代来最小化代价函数的优化算法。",
+    "chunk_id": "chk-d6465a776c6c7458",
+    "chunk_type": "text",
+    "dataset": "workspace_867d147ce35b",
+    "document_id": "doc-1376aba4c3df7fb8",
+    "image_path": "D:\\MLLMProject\\data\\workspaces\\867d147ce35b\\raw\\711e0f1081_理论作业1.jpg",
+    "page_no": 1,
+    "part_index": 0,
+    "sample_id": "711e0f1081",
+    "source_path": "D:\\MLLMProject\\data\\workspaces\\867d147ce35b\\raw\\711e0f1081_理论作业1.jpg",
+    "source_ref": "workspace_867d147ce35b/workspace/711e0f1081#page=1#block=block-0007",
+    "split": "workspace"
+  },
+  {
+    "bbox": [
+      58,
+      851,
+      765,
+      920
+    ],
+    "block_id": "block-0008",
+    "block_index": 8,
+    "caption": "a.请写出代价函数 $\\ b { L } ( \\ b { w } )$ 关于参数w的梯度 $\\frac { \\partial L ( \\boldsymbol { w } ) } { \\partial \\boldsymbol { w } }$ 的矩阵形式表达式。",
+    "chunk_id": "chk-976b4f2f58e7ba25",
+    "chunk_type": "text",
+    "dataset": "workspace_867d147ce35b",
+    "document_id": "doc-1376aba4c3df7fb8",
+    "image_path": "D:\\MLLMProject\\data\\workspaces\\867d147ce35b\\raw\\711e0f1081_理论作业1.jpg",
+    "page_no": 1,
+    "part_index": 0,
+    "sample_id": "711e0f1081",
+    "source_path": "D:\\MLLMProject\\data\\workspaces\\867d147ce35b\\raw\\711e0f1081_理论作业1.jpg",
+    "source_ref": "workspace_867d147ce35b/workspace/711e0f1081#page=1#block=block-0008",
+    "split": "workspace"
+  },
+  {
+    "bbox": [
+      58,
+      931,
+      776,
+      980
+    ],
+    "block_id": "block-0009",
+    "block_index": 9,
+    "caption": "b.基于此梯度，请写出使用梯度下降法更新模型参数w的完整迭代公式。",
+    "chunk_id": "chk-0ad57229d35cecaa",
+    "chunk_type": "text",
+    "dataset": "workspace_867d147ce35b",
+    "document_id": "doc-1376aba4c3df7fb8",
+    "image_path": "D:\\MLLMProject\\data\\workspaces\\867d147ce35b\\raw\\711e0f1081_理论作业1.jpg",
+    "page_no": 1,
+    "part_index": 0,
+    "sample_id": "711e0f1081",
+    "source_path": "D:\\MLLMProject\\data\\workspaces\\867d147ce35b\\raw\\711e0f1081_理论作业1.jpg",
+    "source_ref": "workspace_867d147ce35b/workspace/711e0f1081#page=1#block=block-0009",
+    "split": "workspace"
+  }
+]

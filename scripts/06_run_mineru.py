@@ -501,7 +501,7 @@ def main() -> int:
     )
     api_url: str | None = None
     if not args.mock:
-        api_url = api_session.start_if_needed()
+        api_url = None
 
     num_workers = max(1, min(args.num_workers, len(tasks)))
     print(f"[mineru] tasks={len(tasks)} workers={num_workers} mock={args.mock} api_url={api_url or 'N/A'}")

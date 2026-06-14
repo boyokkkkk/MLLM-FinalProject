@@ -5,6 +5,7 @@ import base64
 import streamlit as st
 
 from components.chat_window import add_assistant_message, add_user_message, clear_current_chat, render_chat_history
+from components.markdown import render_markdown_text
 from services.api_client import APIClient
 from utils.locales import TEXT
 
@@ -149,7 +150,7 @@ def _render_answer_card(ui: dict[str, str], visible_citations: int) -> None:
     with left:
         st.markdown(f"<div class='panel-shell answer-shell'><div class='panel-title'>{ui['answer_panel']}</div>", unsafe_allow_html=True)
         if answer:
-            st.markdown(answer)
+            render_markdown_text(answer)
         else:
             st.caption(ui["no_evidence"])
         st.markdown("</div>", unsafe_allow_html=True)

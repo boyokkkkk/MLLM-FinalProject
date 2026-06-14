@@ -1,0 +1,1230 @@
+{
+  "1": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 4
+    },
+    {
+      "chunk_id": "chk-44a55a750028b044",
+      "tf": 1
+    }
+  ],
+  "2": [
+    {
+      "chunk_id": "chk-0977358d2563ba0f",
+      "tf": 1
+    }
+  ],
+  "3": [
+    {
+      "chunk_id": "chk-d0cd70de5a44f48a",
+      "tf": 1
+    }
+  ],
+  "a": [
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 1
+    }
+  ],
+  "b": [
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 2
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "boldsymbol": [
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 2
+    }
+  ],
+  "cost": [
+    {
+      "chunk_id": "chk-44a55a750028b044",
+      "tf": 1
+    }
+  ],
+  "descent": [
+    {
+      "chunk_id": "chk-d0cd70de5a44f48a",
+      "tf": 1
+    }
+  ],
+  "equation": [
+    {
+      "chunk_id": "chk-0977358d2563ba0f",
+      "tf": 1
+    }
+  ],
+  "error": [
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    }
+  ],
+  "frac": [
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 1
+    }
+  ],
+  "function": [
+    {
+      "chunk_id": "chk-44a55a750028b044",
+      "tf": 1
+    }
+  ],
+  "gradient": [
+    {
+      "chunk_id": "chk-d0cd70de5a44f48a",
+      "tf": 1
+    }
+  ],
+  "l": [
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 2
+    }
+  ],
+  "m": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 3
+    }
+  ],
+  "mean": [
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    }
+  ],
+  "n": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 3
+    }
+  ],
+  "normal": [
+    {
+      "chunk_id": "chk-0977358d2563ba0f",
+      "tf": 1
+    }
+  ],
+  "partial": [
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 2
+    }
+  ],
+  "pmb": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    }
+  ],
+  "squared": [
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    }
+  ],
+  "w": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 2
+    },
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 4
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "x": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "y": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "一": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 4
+    },
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 1
+    }
+  ],
+  "下": [
+    {
+      "chunk_id": "chk-46fd886d3e551694",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-d0cd70de5a44f48a",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "个": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 6
+    }
+  ],
+  "中": [
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    }
+  ],
+  "为": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 3
+    },
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 2
+    }
+  ],
+  "也": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    }
+  ],
+  "于": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "代": [
+    {
+      "chunk_id": "chk-44a55a750028b044",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 2
+    },
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "令": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    }
+  ],
+  "以": [
+    {
+      "chunk_id": "chk-46fd886d3e551694",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    }
+  ],
+  "们": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "件": [
+    {
+      "chunk_id": "chk-46fd886d3e551694",
+      "tf": 1
+    }
+  ],
+  "价": [
+    {
+      "chunk_id": "chk-44a55a750028b044",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 1
+    }
+  ],
+  "优": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 2
+    },
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 1
+    }
+  ],
+  "使": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "值": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-0977358d2563ba0f",
+      "tf": 1
+    }
+  ],
+  "偏": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "公": [
+    {
+      "chunk_id": "chk-46fd886d3e551694",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "关": [
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 1
+    }
+  ],
+  "其": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 2
+    }
+  ],
+  "内": [
+    {
+      "chunk_id": "chk-46fd886d3e551694",
+      "tf": 1
+    }
+  ],
+  "写": [
+    {
+      "chunk_id": "chk-46fd886d3e551694",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "凸": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    }
+  ],
+  "出": [
+    {
+      "chunk_id": "chk-46fd886d3e551694",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "函": [
+    {
+      "chunk_id": "chk-44a55a750028b044",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 2
+    },
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 1
+    }
+  ],
+  "到": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    }
+  ],
+  "包": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "化": [
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 2
+    }
+  ],
+  "参": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "可": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    }
+  ],
+  "合": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "向": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 4
+    }
+  ],
+  "含": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "和": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "回": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    }
+  ],
+  "均": [
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    }
+  ],
+  "型": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 2
+    },
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "基": [
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "完": [
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "实": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "容": [
+    {
+      "chunk_id": "chk-46fd886d3e551694",
+      "tf": 1
+    }
+  ],
+  "对": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 2
+    }
+  ],
+  "小": [
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 1
+    }
+  ],
+  "差": [
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    }
+  ],
+  "已": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "应": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "度": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-d0cd70de5a44f48a",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 2
+    }
+  ],
+  "式": [
+    {
+      "chunk_id": "chk-46fd886d3e551694",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 2
+    },
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 2
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "归": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    }
+  ],
+  "当": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    }
+  ],
+  "形": [
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 1
+    }
+  ],
+  "征": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 2
+    }
+  ],
+  "心": [
+    {
+      "chunk_id": "chk-46fd886d3e551694",
+      "tf": 1
+    }
+  ],
+  "性": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    }
+  ],
+  "我": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "找": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    }
+  ],
+  "拟": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "拥": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "据": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-46fd886d3e551694",
+      "tf": 1
+    }
+  ],
+  "数": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 2
+    },
+    {
+      "chunk_id": "chk-44a55a750028b044",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-0977358d2563ba0f",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 2
+    },
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 2
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "整": [
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "新": [
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "方": [
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    }
+  ],
+  "时": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    }
+  ],
+  "是": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 1
+    }
+  ],
+  "更": [
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "最": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 2
+    },
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 1
+    }
+  ],
+  "有": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "本": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 2
+    }
+  ],
+  "来": [
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 1
+    }
+  ],
+  "标": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "样": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 2
+    }
+  ],
+  "核": [
+    {
+      "chunk_id": "chk-46fd886d3e551694",
+      "tf": 1
+    }
+  ],
+  "根": [
+    {
+      "chunk_id": "chk-46fd886d3e551694",
+      "tf": 1
+    }
+  ],
+  "梯": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-d0cd70de5a44f48a",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 2
+    }
+  ],
+  "模": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 2
+    },
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "正": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    }
+  ],
+  "此": [
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "法": [
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "特": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 2
+    }
+  ],
+  "用": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "的": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 4
+    },
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 2
+    },
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 2
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "真": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "矩": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 2
+    },
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 1
+    }
+  ],
+  "种": [
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 1
+    }
+  ],
+  "称": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    }
+  ],
+  "程": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    }
+  ],
+  "签": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "算": [
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 1
+    }
+  ],
+  "线": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    }
+  ],
+  "练": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "置": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "行": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "表": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 1
+    }
+  ],
+  "规": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    }
+  ],
+  "解": [
+    {
+      "chunk_id": "chk-0977358d2563ba0f",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 3
+    }
+  ],
+  "训": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "该": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    }
+  ],
+  "误": [
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    }
+  ],
+  "请": [
+    {
+      "chunk_id": "chk-46fd886d3e551694",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "课": [
+    {
+      "chunk_id": "chk-46fd886d3e551694",
+      "tf": 1
+    }
+  ],
+  "达": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 1
+    }
+  ],
+  "过": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 1
+    }
+  ],
+  "进": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "迭": [
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "通": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 1
+    }
+  ],
+  "量": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 4
+    }
+  ],
+  "阵": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 2
+    },
+    {
+      "chunk_id": "chk-4f1f3c7aadd0ac03",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-976b4f2f58e7ba25",
+      "tf": 1
+    }
+  ],
+  "降": [
+    {
+      "chunk_id": "chk-d0cd70de5a44f48a",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-d6465a776c6c7458",
+      "tf": 1
+    },
+    {
+      "chunk_id": "chk-0ad57229d35cecaa",
+      "tf": 1
+    }
+  ],
+  "集": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ],
+  "零": [
+    {
+      "chunk_id": "chk-e83d887fd3e813d8",
+      "tf": 1
+    }
+  ],
+  "项": [
+    {
+      "chunk_id": "chk-9de40f9f30bb3ca5",
+      "tf": 1
+    }
+  ]
+}

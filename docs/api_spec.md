@@ -34,9 +34,12 @@ Prefix: `/api/v1`
 ```json
 {
   "query": "What is the key idea of this slide?",
+  "workspace_id": "abc123workspace",
   "context": ["chunk-1 text", "chunk-2 text"],
+  "image_data_urls": [],
   "temperature": 0.2,
-  "max_tokens": 512
+  "max_tokens": 512,
+  "history": []
 }
 ```
 
@@ -46,7 +49,16 @@ Prefix: `/api/v1`
 {
   "answer": "...",
   "citations": [
-    {"source_ref": "ctx-1", "snippet": "..."}
+    {
+      "chunk_id": "chk-001",
+      "source": "docvqa/val/10269#page=3#figure=fig-12#block=block-0002",
+      "page": 3,
+      "figure_id": "fig-12",
+      "figure_no": "12",
+      "block_id": "block-0002",
+      "snippet": "...",
+      "source_ref": "docvqa/val/10269#page=3#figure=fig-12#block=block-0002"
+    }
   ],
   "model": "Qwen/Qwen2.5-VL-7B-Instruct"
 }

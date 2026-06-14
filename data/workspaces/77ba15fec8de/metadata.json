@@ -1,0 +1,31 @@
+{
+  "workspace_id": "77ba15fec8de",
+  "scope": "workspace",
+  "dataset_name": "workspace_77ba15fec8de",
+  "status": "indexed",
+  "stage": "ready",
+  "progress": 1.0,
+  "progress_label": "Workspace indexed and ready for retrieval",
+  "created_at": "2026-06-14T05:57:53Z",
+  "updated_at": "2026-06-14T06:35:38Z",
+  "assets": [
+    {
+      "asset_id": "f0b5faad44",
+      "name": "理论作业1.jpg",
+      "stored_name": "f0b5faad44_理论作业1.jpg",
+      "path": "D:\\MLLMProject\\data\\workspaces\\77ba15fec8de\\raw\\f0b5faad44_理论作业1.jpg",
+      "type": "jpg",
+      "status": "indexed",
+      "stage": "indexed",
+      "parser": "mineru",
+      "section_count": 0,
+      "snippet": "Parsed with MinerU and routed into the workspace retrieval pipeline."
+    }
+  ],
+  "last_error": "",
+  "counts": {
+    "documents": 1,
+    "chunks": 10,
+    "visual_items": 10
+  }
+}

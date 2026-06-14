@@ -1,0 +1,346 @@
+[
+    {
+        "layout_dets": [
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9486,
+                "bbox": [
+                    9,
+                    19,
+                    1262,
+                    156
+                ],
+                "index": 1
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9144,
+                "bbox": [
+                    11,
+                    195,
+                    489,
+                    232
+                ],
+                "index": 2
+            },
+            {
+                "cls_id": 17,
+                "label": "paragraph_title",
+                "score": 0.9278,
+                "bbox": [
+                    30,
+                    259,
+                    423,
+                    294
+                ],
+                "index": 3
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.8768,
+                "bbox": [
+                    75,
+                    308,
+                    1237,
+                    346
+                ],
+                "index": 4
+            },
+            {
+                "cls_id": 17,
+                "label": "paragraph_title",
+                "score": 0.9051,
+                "bbox": [
+                    29,
+                    372,
+                    431,
+                    408
+                ],
+                "index": 5
+            },
+            {
+                "cls_id": 15,
+                "label": "inline_formula",
+                "score": 0.801,
+                "bbox": [
+                    605,
+                    423,
+                    653,
+                    453
+                ],
+                "index": 6,
+                "latex": "\\pmb { w } ^ { * }"
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9481,
+                "bbox": [
+                    68,
+                    420,
+                    1257,
+                    508
+                ],
+                "index": 7
+            },
+            {
+                "cls_id": 17,
+                "label": "paragraph_title",
+                "score": 0.9178,
+                "bbox": [
+                    29,
+                    534,
+                    471,
+                    569
+                ],
+                "index": 8
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.8962,
+                "bbox": [
+                    74,
+                    583,
+                    776,
+                    619
+                ],
+                "index": 9
+            },
+            {
+                "cls_id": 15,
+                "label": "inline_formula",
+                "score": 0.4725,
+                "bbox": [
+                    317,
+                    632,
+                    396,
+                    670
+                ],
+                "index": 10,
+                "latex": "\\ b { L } ( \\ b { w } )"
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.8748,
+                "bbox": [
+                    75,
+                    624,
+                    980,
+                    674
+                ],
+                "index": 11
+            },
+            {
+                "cls_id": 15,
+                "label": "inline_formula",
+                "score": 0.9456,
+                "bbox": [
+                    653,
+                    623,
+                    729,
+                    675
+                ],
+                "index": 12,
+                "latex": "\\frac { \\partial L ( \\boldsymbol { w } ) } { \\partial \\boldsymbol { w } }"
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.8551,
+                "bbox": [
+                    75,
+                    682,
+                    994,
+                    718
+                ],
+                "index": 13
+            },
+            {
+                "label": "ocr_text",
+                "bbox": [
+                    16,
+                    19,
+                    1258,
+                    54
+                ],
+                "score": 0.994,
+                "text": "对于一个拥有n个样本和m个特征的训练数据集，我们使用线性回归模型进行拟合。样本的特征矩"
+            },
+            {
+                "label": "ocr_text",
+                "bbox": [
+                    18,
+                    68,
+                    1256,
+                    103
+                ],
+                "score": 0.952,
+                "text": "阵为X（一个n×（m＋1)矩阵，已包含偏置项），对应的真实值标签为向量y（一个n×1向"
+            },
+            {
+                "label": "ocr_text",
+                "bbox": [
+                    13,
+                    115,
+                    741,
+                    156
+                ],
+                "score": 0.933,
+                "text": "量）。模型的参数为向量w（一个(m+1)×1向量）。"
+            },
+            {
+                "label": "ocr_text",
+                "bbox": [
+                    18,
+                    195,
+                    487,
+                    230
+                ],
+                "score": 0.985,
+                "text": "请根据课件内容，写出以下核心公式："
+            },
+            {
+                "label": "ocr_text",
+                "bbox": [
+                    32,
+                    256,
+                    420,
+                    297
+                ],
+                "score": 0.97,
+                "text": "1．代价函数 (Cost Function)"
+            },
+            {
+                "label": "ocr_text",
+                "bbox": [
+                    30,
+                    370,
+                    429,
+                    412
+                ],
+                "score": 0.983,
+                "text": "2．数值解 (Normal Equation)"
+            },
+            {
+                "label": "ocr_text",
+                "bbox": [
+                    77,
+                    301,
+                    1237,
+                    350
+                ],
+                "score": 0.975,
+                "text": "请写出线性回归模型中基于均方误差(Mean Squared Error)的代价函数L(w）的矩阵形式。"
+            },
+            {
+                "label": "ocr_text",
+                "bbox": [
+                    84,
+                    422,
+                    604,
+                    456
+                ],
+                "score": 0.954,
+                "text": "当代价函数L(w)是凸函数时，其最优解"
+            },
+            {
+                "label": "ocr_text",
+                "bbox": [
+                    656,
+                    422,
+                    1253,
+                    456
+                ],
+                "score": 1.0,
+                "text": "可以通过令其梯度为零找到。请写出该最优解的"
+            },
+            {
+                "label": "ocr_text",
+                "bbox": [
+                    81,
+                    472,
+                    579,
+                    505
+                ],
+                "score": 0.999,
+                "text": "矩阵形式表达式（也称为正规方程解）。"
+            },
+            {
+                "label": "ocr_text",
+                "bbox": [
+                    29,
+                    531,
+                    468,
+                    572
+                ],
+                "score": 0.975,
+                "text": "3．梯度下降(Gradient Descent)"
+            },
+            {
+                "label": "ocr_text",
+                "bbox": [
+                    81,
+                    584,
+                    775,
+                    618
+                ],
+                "score": 0.999,
+                "text": "梯度下降是一种通过迭代来最小化代价函数的优化算法。"
+            },
+            {
+                "label": "ocr_text",
+                "bbox": [
+                    77,
+                    632,
+                    316,
+                    670
+                ],
+                "score": 1.0,
+                "text": "a.请写出代价函数"
+            },
+            {
+                "label": "ocr_text",
+                "bbox": [
+                    402,
+                    632,
+                    652,
+                    670
+                ],
+                "score": 0.949,
+                "text": "关于参数w的梯度"
+            },
+            {
+                "label": "ocr_text",
+                "bbox": [
+                    735,
+                    630,
+                    978,
+                    670
+                ],
+                "score": 1.0,
+                "text": "的矩阵形式表达式。"
+            },
+            {
+                "label": "ocr_text",
+                "bbox": [
+                    78,
+                    682,
+                    991,
+                    719
+                ],
+                "score": 0.986,
+                "text": "b.基于此梯度，请写出使用梯度下降法更新模型参数w的完整迭代公式。"
+            }
+        ],
+        "page_info": {
+            "page_no": 0,
+            "width": 1280,
+            "height": 732
+        }
+    }
+]

@@ -56,6 +56,7 @@ class RetrievalConfig(BaseModel):
     query_image_pool_size: int = 20
     query_image_weight: float = 0.35
     generation_visual_assist: bool = False
+    generation_visual_assist_policy: str = "gated_logo_pack_heading_title_page_handwritten_only"
     generation_visual_top_n: int = 2
     generation_visual_include_descriptors: bool = True
     generation_visual_include_images: bool = True
@@ -216,6 +217,7 @@ class AppSettings(BaseSettings):
                 "query_image_pool_size": _env_int("RETRIEVAL_QUERY_IMAGE_POOL_SIZE", config.query_image_pool_size),
                 "query_image_weight": _env_float("RETRIEVAL_QUERY_IMAGE_WEIGHT", config.query_image_weight),
                 "generation_visual_assist": _env_bool("RETRIEVAL_GENERATION_VISUAL_ASSIST", config.generation_visual_assist),
+                "generation_visual_assist_policy": _env_str("RETRIEVAL_GENERATION_VISUAL_ASSIST_POLICY", config.generation_visual_assist_policy),
                 "generation_visual_top_n": _env_int("RETRIEVAL_GENERATION_VISUAL_TOP_N", config.generation_visual_top_n),
                 "generation_visual_include_descriptors": _env_bool("RETRIEVAL_GENERATION_VISUAL_INCLUDE_DESCRIPTORS", config.generation_visual_include_descriptors),
                 "generation_visual_include_images": _env_bool("RETRIEVAL_GENERATION_VISUAL_INCLUDE_IMAGES", config.generation_visual_include_images),

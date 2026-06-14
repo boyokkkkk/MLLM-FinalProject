@@ -47,9 +47,15 @@ class Citation(BaseModel):
     chunk_id: str
     source: str
     page: int | None = None
+    figure_id: str | None = None
+    figure_no: str | None = None
+    block_id: str | None = None
     snippet: str
     section_title: str | None = None
     citation_kind: str | None = None
+    chunk_type: str | None = None
+    score: float | None = None
+    image_data_url: str | None = None
     source_ref: str | None = Field(
         default=None,
         description="Legacy compatibility field; prefer `source` for new clients.",
