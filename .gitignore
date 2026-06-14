@@ -6,8 +6,10 @@ __pycache__/
 .mypy_cache/
 
 outputs/
+output/
 logs/
 tmp/
+test_mineru_out/
 
 .DS_Store
 Thumbs.db
