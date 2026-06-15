@@ -7,6 +7,11 @@ from collections.abc import Iterable
 
 _SPACE_RE = re.compile(r"\s+")
 _PUNCT_TABLE = str.maketrans("", "", r"""!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~""")
+_ANSWER_PREFIX_RE = re.compile(
+    r"^\s*(?:final answer|answer|short answer|the answer is|it is|it's)\s*[:\-]\s*",
+    re.IGNORECASE,
+)
+_SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
 
 
 def normalize_text(text: str) -> str:
@@ -14,6 +19,32 @@ def normalize_text(text: str) -> str:
     value = value.lower().translate(_PUNCT_TABLE)
     value = _SPACE_RE.sub(" ", value).strip()
     return value
+
+
+def extract_scoring_answer(prediction: str, references: Iterable[str]) -> str:
+    raw = unicodedata.normalize("NFKC", prediction or "").strip()
+    if not raw:
+        return ""
+
+    # Reference-aware extraction: if the long-form response explicitly contains a gold
+    # answer string, score against that short answer instead of the full explanation.
+    normalized_raw = normalize_text(raw)
+    refs = [str(item).strip() for item in references if str(item).strip()]
+    for ref in refs:
+        normalized_ref = normalize_text(ref)
+        if normalized_ref and normalized_ref in normalized_raw:
+            return ref
+
+    lines = [line.strip() for line in raw.splitlines() if line.strip()]
+    for line in lines:
+        stripped = _ANSWER_PREFIX_RE.sub("", line).strip(" -*\t")
+        if stripped != line and stripped:
+            return stripped
+
+    first_line = lines[0] if lines else raw
+    first_sentence = _SENTENCE_SPLIT_RE.split(first_line, maxsplit=1)[0].strip()
+    first_sentence = _ANSWER_PREFIX_RE.sub("", first_sentence).strip(" -*\t")
+    return first_sentence or first_line
 
 
 def exact_match(prediction: str, references: Iterable[str]) -> float:

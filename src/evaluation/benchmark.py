@@ -20,7 +20,17 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from scripts.data_index_utils import read_jsonl, read_yaml
-from src.evaluation.metrics import anls, answer_contains, citation_accuracy, exact_match, hit_at_k, precision_at_k, recall_at_k, token_f1
+from src.evaluation.metrics import (
+    anls,
+    answer_contains,
+    citation_accuracy,
+    exact_match,
+    extract_scoring_answer,
+    hit_at_k,
+    precision_at_k,
+    recall_at_k,
+    token_f1,
+)
 from src.models.retrieval import late_fuse_ranked_chunks, rank_sparse_chunks, rank_visual_chunks, rerank_chart_table_candidates
 from src.models.clients import build_embedding_client, build_llm_client
 from src.utils.settings import RetrievalConfig, settings
@@ -596,6 +606,7 @@ def run_rag_eval(
             doc_page_flags = _doc_page_relevance_flags_from_citations(citations, sample.expected_doc_page_key, sample_to_docpage)
             flags = doc_page_flags if match_granularity == "doc_page" else sample_flags
             answer = str(body.get("answer", ""))
+            scoring_answer = extract_scoring_answer(answer, sample.answers)
             record = {
                 "sample_id": sample.sample_id,
                 "dataset": sample.dataset,
@@ -605,6 +616,8 @@ def run_rag_eval(
                 "mode": "rag",
                 "top_k": top_k,
                 "answer": answer,
+                "raw_answer": answer,
+                "scoring_answer": scoring_answer,
                 "citations": citations,
                 "model": body.get("model"),
                 "metrics": {
@@ -616,10 +629,10 @@ def run_rag_eval(
                     "sample_citation_accuracy": citation_accuracy(sample_flags[0] if sample_flags else False),
                     "doc_page_hit_at_k": hit_at_k(doc_page_flags),
                     "doc_page_citation_accuracy": citation_accuracy(doc_page_flags[0] if doc_page_flags else False),
-                    "exact_match": exact_match(answer, sample.answers),
+                    "exact_match": exact_match(scoring_answer, sample.answers),
                     "answer_contains": answer_contains(answer, sample.answers),
-                    "token_f1": token_f1(answer, sample.answers),
-                    "anls": anls(answer, sample.answers),
+                    "token_f1": token_f1(scoring_answer, sample.answers),
+                    "anls": anls(scoring_answer, sample.answers),
                 },
             }
             records.append(record)

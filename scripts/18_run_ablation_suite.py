@@ -202,6 +202,66 @@ def _ablation_experiments(index_root: str) -> list[ExperimentSpec]:
                 "RETRIEVAL_GENERATION_VISUAL_ASSIST_POLICY": "gated",
             },
         ),
+        ExperimentSpec(
+            name="docvqa_val_unique_docpage_100_ablation_rag_visualassist_logo_only",
+            mode="rag",
+            groups=("gating",),
+            description="Generation-time visual assistance gated only for logo/pack text questions.",
+            cli_args=[
+                "--rerank-profile", "stronger",
+                "--query-type-aware-rerank",
+                "--query-image-aware-rerank",
+                "--generation-visual-assist",
+                "--generation-visual-assist-policy", "logo_only",
+            ],
+            env={
+                "RETRIEVAL_RERANK_PROFILE": "stronger",
+                "RETRIEVAL_QUERY_TYPE_AWARE_RERANK": "true",
+                "RETRIEVAL_QUERY_IMAGE_AWARE_RERANK": "true",
+                "RETRIEVAL_GENERATION_VISUAL_ASSIST": "true",
+                "RETRIEVAL_GENERATION_VISUAL_ASSIST_POLICY": "logo_only",
+            },
+        ),
+        ExperimentSpec(
+            name="docvqa_val_unique_docpage_100_ablation_rag_visualassist_title_page_only",
+            mode="rag",
+            groups=("gating",),
+            description="Generation-time visual assistance gated only for title/heading/page-number questions.",
+            cli_args=[
+                "--rerank-profile", "stronger",
+                "--query-type-aware-rerank",
+                "--query-image-aware-rerank",
+                "--generation-visual-assist",
+                "--generation-visual-assist-policy", "title_page_only",
+            ],
+            env={
+                "RETRIEVAL_RERANK_PROFILE": "stronger",
+                "RETRIEVAL_QUERY_TYPE_AWARE_RERANK": "true",
+                "RETRIEVAL_QUERY_IMAGE_AWARE_RERANK": "true",
+                "RETRIEVAL_GENERATION_VISUAL_ASSIST": "true",
+                "RETRIEVAL_GENERATION_VISUAL_ASSIST_POLICY": "title_page_only",
+            },
+        ),
+        ExperimentSpec(
+            name="docvqa_val_unique_docpage_100_ablation_rag_visualassist_handwritten_only",
+            mode="rag",
+            groups=("gating",),
+            description="Generation-time visual assistance gated only for handwritten-form questions.",
+            cli_args=[
+                "--rerank-profile", "stronger",
+                "--query-type-aware-rerank",
+                "--query-image-aware-rerank",
+                "--generation-visual-assist",
+                "--generation-visual-assist-policy", "handwritten_only",
+            ],
+            env={
+                "RETRIEVAL_RERANK_PROFILE": "stronger",
+                "RETRIEVAL_QUERY_TYPE_AWARE_RERANK": "true",
+                "RETRIEVAL_QUERY_IMAGE_AWARE_RERANK": "true",
+                "RETRIEVAL_GENERATION_VISUAL_ASSIST": "true",
+                "RETRIEVAL_GENERATION_VISUAL_ASSIST_POLICY": "handwritten_only",
+            },
+        ),
     ]
 
 
@@ -221,6 +281,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--api-port-base", type=int, default=8030, help="Starting port for temporary API instances.")
     parser.add_argument("--skip-existing", action="store_true", help="Skip runs whose summary JSON already exists.")
     parser.add_argument("--summary-stem", default="docvqa_val_unique_docpage_100_ablation_suite", help="Output stem for consolidated summary files.")
+    parser.add_argument("--text-only-vlm-model", default="", help="Optional text-capable model override used only for rag_text_only, e.g. qwen-plus.")
     return parser.parse_args()
 
 
@@ -372,6 +433,8 @@ def main() -> int:
         else:
             env = os.environ.copy()
             env.update(spec.env)
+            if spec.name.endswith("ablation_rag_text_only") and args.text_only_vlm_model:
+                env["VLM_MODEL"] = args.text_only_vlm_model
             command = [
                 args.python_bin,
                 "scripts/12_run_benchmark_eval.py",

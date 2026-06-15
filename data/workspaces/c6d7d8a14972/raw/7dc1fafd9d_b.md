@@ -1,4 +1,0 @@
-# B
-
-## R
-result b

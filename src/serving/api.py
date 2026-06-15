@@ -92,12 +92,21 @@ FOLLOWUP_QUERY_MARKERS = (
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 WEB_STATIC_DIR = Path(__file__).resolve().parents[1] / "ui" / "web_static"
 EVAL_ASSET_DIR = (PROJECT_ROOT / settings.output_root / "eval" / "final_assets").resolve()
+TRANSPARENT_PIXEL_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAJElEQVR4nGP8//8/AyWAiSLdowaAARMDhYBp1ACGUQMYKDcAAGOaAx2f8LHwAAAAAElFTkSuQmCC"
 
 
 def _normalize_visual_assist_policy(policy: str | None) -> str:
     value = (policy or "").strip().lower()
     if value in {"", "gated", "heuristic_gated", "gated_logo_pack_heading_title_page_handwritten_only"}:
         return "gated_logo_pack_heading_title_page_handwritten_only"
+    if value in {"logo_only", "logo-only"}:
+        return "logo_only"
+    if value in {"title_page_only", "title-page-only", "title_or_page_only"}:
+        return "title_page_only"
+    if value in {"handwritten_only", "handwritten-only"}:
+        return "handwritten_only"
+    if value in {"strict_visual_gated", "strict-visual-gated"}:
+        return "strict_visual_gated"
     if value in {"always", "all", "force_on"}:
         return "always"
     if value in {"off", "disabled", "none"}:
@@ -116,16 +125,27 @@ def _should_enable_visual_assist(query: str, evidences: list[Evidence], policy: 
     if not value:
         return False
 
-    enabled_markers = (
+    logo_markers = (
         "logo",
         "pack",
         "written on the pack",
         "written within the logo",
+        "brand",
+    )
+    title_page_markers = (
         "heading",
         "title",
         "page no",
         "page number",
-        "handwritten",
+        "tagline",
+        "subject",
+    )
+    handwritten_markers = ("handwritten",)
+
+    enabled_markers = (
+        *logo_markers,
+        *title_page_markers,
+        *handwritten_markers,
     )
     disabled_markers = (
         "x axis",
@@ -147,6 +167,18 @@ def _should_enable_visual_assist(query: str, evidences: list[Evidence], policy: 
         "summary",
         "abstract",
     )
+
+    if normalized_policy == "logo_only":
+        return any(marker in value for marker in logo_markers)
+    if normalized_policy == "title_page_only":
+        return any(marker in value for marker in title_page_markers)
+    if normalized_policy == "handwritten_only":
+        return any(marker in value for marker in handwritten_markers)
+    if normalized_policy == "strict_visual_gated":
+        strict_markers = (*logo_markers, *title_page_markers, *handwritten_markers)
+        if any(marker in value for marker in disabled_markers):
+            return False
+        return any(marker in value for marker in strict_markers)
 
     if any(marker in value for marker in disabled_markers):
         return False
@@ -199,6 +231,13 @@ def _build_uploaded_image_evidences(image_data_urls: list[str]) -> list[Evidence
             )
         )
     return evidences
+
+
+def _needs_vl_placeholder_image(model_name: str, image_data_urls: list[str], visual_assist_images: list[str]) -> bool:
+    value = (model_name or "").lower()
+    if "vl" not in value:
+        return False
+    return not image_data_urls and not visual_assist_images
 
 
 def _parse_request_context_item(item: str) -> tuple[str, str]:
@@ -716,7 +755,7 @@ def _looks_truncated_answer(answer: str) -> bool:
 
 
 def _build_history_messages(history: list[Any], max_turns: int = 8) -> list[dict[str, str]]:
-    normalized: list[dict[str, str]] = []
+    normalized: list[dict[str, Any]] = []
     for item in history[-max_turns:]:
         if isinstance(item, dict):
             role = str(item.get("role", "")).strip()
@@ -726,7 +765,7 @@ def _build_history_messages(history: list[Any], max_turns: int = 8) -> list[dict
             content = str(getattr(item, "content", "")).strip()
         if role not in {"user", "assistant"} or not content:
             continue
-        normalized.append({"role": role, "content": content})
+        normalized.append({"role": role, "content": [{"type": "text", "text": content}]})
     return normalized
 
 
@@ -992,17 +1031,18 @@ async def chat(
         "For summary or analysis requests, provide a short conclusion first and then the key supporting points in complete sentences."
     )
 
-    if req.image_data_urls or visual_assist_images:
-        user_content: list[dict[str, object]] = [{"type": "text", "text": user_text}]
-        for data_url in req.image_data_urls:
-            user_content.append({"type": "image_url", "image_url": {"url": data_url}})
-        for data_url in visual_assist_images:
-            user_content.append({"type": "image_url", "image_url": {"url": data_url}})
-        user_message: dict[str, Any] = {"role": "user", "content": user_content}
-    else:
-        user_message = {"role": "user", "content": user_text}
+    user_content: list[dict[str, object]] = [{"type": "text", "text": user_text}]
+    for data_url in req.image_data_urls:
+        user_content.append({"type": "image_url", "image_url": {"url": data_url}})
+    for data_url in visual_assist_images:
+        user_content.append({"type": "image_url", "image_url": {"url": data_url}})
+    if _needs_vl_placeholder_image(settings.vlm.model, req.image_data_urls, visual_assist_images):
+        # Some VL endpoints reject text-only requests. A transparent 1x1 image keeps the
+        # request format valid without exposing extra document evidence to the model.
+        user_content.append({"type": "image_url", "image_url": {"url": TRANSPARENT_PIXEL_DATA_URL}})
+    user_message: dict[str, Any] = {"role": "user", "content": user_content}
 
-    messages = [{"role": "system", "content": system_prompt}]
+    messages = [{"role": "system", "content": [{"type": "text", "text": system_prompt}]}]
     messages.extend(_build_history_messages(req.history))
     messages.append(user_message)
 
@@ -1019,10 +1059,15 @@ async def chat(
                 retry_messages.append(
                     {
                         "role": "user",
-                        "content": (
-                            "The previous answer appears incomplete or cut off. "
-                            "Please provide the complete answer again from the beginning, preserving Markdown structure and complete LaTeX expressions."
-                        ),
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": (
+                                    "The previous answer appears incomplete or cut off. "
+                                    "Please provide the complete answer again from the beginning, preserving Markdown structure and complete LaTeX expressions."
+                                ),
+                            }
+                        ],
                     }
                 )
                 retry_answer = await client.chat(retry_messages, temperature=temperature, max_tokens=retry_max_tokens)
