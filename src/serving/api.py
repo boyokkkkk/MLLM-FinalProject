@@ -48,6 +48,8 @@ TOKEN_RE = re.compile(r"[A-Za-z0-9_]+|[\u4e00-\u9fff]")
 SOURCE_FIGURE_RE = re.compile(r"(?:^|#)figure=(?P<figure_id>[^#]+)")
 SOURCE_BLOCK_RE = re.compile(r"(?:^|#)block=(?P<block_id>[^#]+)")
 TRAILING_NUMBER_RE = re.compile(r"(\d+)$")
+DOCVQA_SAMPLE_RE = re.compile(r"docvqa\D{0,24}(?P<sample_id>\d{3,8})", re.IGNORECASE)
+GENERIC_SAMPLE_RE = re.compile(r"样本\D{0,12}(?P<sample_id>\d{3,8})")
 EXHAUSTIVE_QUERY_MARKERS = (
     "all questions",
     "all the questions",
@@ -89,6 +91,25 @@ FOLLOWUP_QUERY_MARKERS = (
     "this one",
     "that one",
 )
+TEMPORARY_IMAGE_QUERY_MARKERS = (
+    "图中",
+    "图片中",
+    "这张图",
+    "这幅图",
+    "上传的图片",
+    "回答图中",
+    "回答图片中",
+    "第一问",
+    "第二问",
+    "第三问",
+    "第四问",
+    "question in the image",
+    "in the image",
+    "from the image",
+    "uploaded image",
+    "second question",
+    "third question",
+)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 WEB_STATIC_DIR = Path(__file__).resolve().parents[1] / "ui" / "web_static"
 EVAL_ASSET_DIR = (PROJECT_ROOT / settings.output_root / "eval" / "final_assets").resolve()
@@ -115,6 +136,8 @@ def _normalize_visual_assist_policy(policy: str | None) -> str:
 
 
 def _should_enable_visual_assist(query: str, evidences: list[Evidence], policy: str | None = None) -> bool:
+    if _extract_docvqa_sample_id(query):
+        return True
     normalized_policy = _normalize_visual_assist_policy(policy)
     if normalized_policy == "off":
         return False
@@ -350,6 +373,19 @@ def _is_workspace_visual_question(query: str, image_data_urls: list[str], worksp
     return any((item.source or "").startswith("workspace_file:") and (item.source or "").lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".bmp", ".pdf")) for item in workspace_evidences)
 
 
+def _is_temporary_image_focused_query(query: str, image_data_urls: list[str]) -> bool:
+    if not image_data_urls:
+        return False
+    value = (query or "").strip().lower()
+    if not value:
+        return True
+    if len(value) <= 24:
+        return True
+    if _is_followup_query(value):
+        return True
+    return any(marker in value for marker in TEMPORARY_IMAGE_QUERY_MARKERS)
+
+
 def _should_prefer_uploaded_images_only(
     query: str,
     image_data_urls: list[str],
@@ -357,6 +393,8 @@ def _should_prefer_uploaded_images_only(
 ) -> bool:
     if not image_data_urls:
         return False
+    if _is_temporary_image_focused_query(query, image_data_urls):
+        return True
     if workspace_evidences:
         return False
     return _is_workspace_visual_question(query, image_data_urls, workspace_evidences)
@@ -403,6 +441,8 @@ def _should_prefer_workspace_only(
     image_data_urls: list[str],
     workspace_evidences: list[Evidence],
 ) -> bool:
+    if _is_temporary_image_focused_query(query, image_data_urls):
+        return False
     if scope != "workspace-first":
         return False
     if not workspace_evidences:
@@ -457,7 +497,71 @@ def _score_request_context_evidence(query: str, evidence: Evidence) -> float:
     return (title_overlap * 2.0) + overlap + body_bonus + (retrieval_score * 0.75)
 
 
+def _extract_docvqa_sample_id(query: str) -> str | None:
+    value = (query or "").strip()
+    if not value:
+        return None
+    match = DOCVQA_SAMPLE_RE.search(value)
+    if match:
+        return match.group("sample_id").strip()
+    generic_match = GENERIC_SAMPLE_RE.search(value)
+    if generic_match:
+        return generic_match.group("sample_id").strip()
+    return None
+
+
+def _explicit_docvqa_source_prefix(query: str) -> str | None:
+    sample_id = _extract_docvqa_sample_id(query)
+    if not sample_id:
+        return None
+    return f"docvqa/val/{sample_id}"
+
+
+def _evidence_matches_source_prefix(evidence: Evidence, source_prefix: str) -> bool:
+    source = (evidence.source or "").strip()
+    if source.startswith(source_prefix):
+        return True
+    source_path = _resolve_local_path(evidence.source_path) or _resolve_local_path(evidence.image_path)
+    if not source_path:
+        return False
+    return source_path.stem == source_prefix.rsplit("/", 1)[-1]
+
+
+def _filter_evidences_to_source_prefix(evidences: list[Evidence], source_prefix: str | None) -> list[Evidence]:
+    if not source_prefix:
+        return evidences
+    matched = [item for item in evidences if _evidence_matches_source_prefix(item, source_prefix)]
+    return matched or evidences
+
+
+def _build_explicit_docvqa_sample_evidence(query: str) -> Evidence | None:
+    sample_id = _extract_docvqa_sample_id(query)
+    if not sample_id:
+        return None
+
+    image_path = PROJECT_ROOT / "data" / "images" / "docvqa" / "val" / f"{sample_id}.png"
+    if not image_path.exists():
+        return None
+
+    return Evidence(
+        chunk_id=f"explicit_docvqa_sample_{sample_id}",
+        source=f"docvqa/val/{sample_id}#page=1#figure=fig-{sample_id}",
+        page=1,
+        text=f"Explicitly requested DocVQA sample {sample_id}. Use this page as the primary grounding source.",
+        snippet=f"Explicitly requested DocVQA sample {sample_id}.",
+        score=10.0,
+        section_title=f"DocVQA sample {sample_id}",
+        citation_kind="workspace",
+        chunk_type="page_image",
+        image_path=str(image_path),
+        source_path=str(image_path),
+    )
+
+
 def _select_citation_evidences(evidences: list[Evidence], scope: str, query: str) -> list[Evidence]:
+    explicit_source_prefix = _explicit_docvqa_source_prefix(query)
+    if explicit_source_prefix:
+        evidences = _filter_evidences_to_source_prefix(evidences, explicit_source_prefix)
     request_context_evidences = [item for item in evidences if item.citation_kind in {"workspace", "workspace_indexed"}]
     corpus_evidences = [item for item in evidences if item.citation_kind not in {"workspace", "workspace_indexed"}]
     request_context_evidences.sort(key=lambda item: _score_request_context_evidence(query, item), reverse=True)
@@ -466,6 +570,16 @@ def _select_citation_evidences(evidences: list[Evidence], scope: str, query: str
     if scope == "context-only":
         return request_context_evidences[:citation_limit]
     if scope == "workspace-first" and request_context_evidences:
+        primary = request_context_evidences[0]
+        primary_key = (primary.source_path or primary.source or "").strip()
+        if primary_key:
+            same_source = [
+                item
+                for item in request_context_evidences
+                if (item.source_path or item.source or "").strip() == primary_key
+            ]
+            if same_source:
+                return same_source[:citation_limit]
         return request_context_evidences[:citation_limit]
     return (request_context_evidences + corpus_evidences)[:citation_limit]
 
@@ -504,6 +618,8 @@ def _image_file_to_data_url(path: Path) -> str | None:
     if not path.exists():
         return None
     mime = mimetypes.guess_type(path.name)[0] or "image/png"
+    if not mime.startswith("image/"):
+        return None
     payload = base64.b64encode(path.read_bytes()).decode("ascii")
     return f"data:{mime};base64,{payload}"
 
@@ -567,6 +683,37 @@ def _build_generation_visual_assist(query: str, evidences: list[Evidence]) -> tu
     return image_urls, hints
 
 
+def _collect_workspace_grounding_images(evidences: list[Evidence], limit: int = 2) -> list[str]:
+    image_urls: list[str] = []
+    seen_keys: set[str] = set()
+    for evidence in evidences:
+        if evidence.citation_kind != "workspace_indexed":
+            continue
+        if (evidence.chunk_type or "") != "page_image":
+            continue
+        if evidence.inline_image_data_url:
+            image_key = evidence.inline_image_data_url
+            if image_key in seen_keys:
+                continue
+            image_urls.append(evidence.inline_image_data_url)
+            seen_keys.add(image_key)
+        else:
+            image_path = _resolve_local_path(evidence.image_path) or _resolve_local_path(evidence.source_path)
+            if not image_path:
+                continue
+            image_key = str(image_path)
+            if image_key in seen_keys:
+                continue
+            data_url = _image_file_to_data_url(image_path)
+            if not data_url:
+                continue
+            image_urls.append(data_url)
+            seen_keys.add(image_key)
+        if len(image_urls) >= limit:
+            break
+    return image_urls
+
+
 def _render_evidence_block(evidences: list[Evidence], context_max_chars: int) -> str:
     if not evidences:
         return "No retrieved evidence available."
@@ -605,6 +752,7 @@ def _build_citations(evidences: list[Evidence]) -> list[Citation]:
             Citation(
                 chunk_id=evidence.chunk_id,
                 source=evidence.source,
+                source_path=evidence.source_path,
                 page=evidence.page,
                 figure_id=figure_id,
                 figure_no=figure_no,
@@ -704,7 +852,9 @@ def _postprocess_answer(answer: str) -> str:
 
     while cleaned_lines and cleaned_lines[-1] == "":
         cleaned_lines.pop()
-    return "\n".join(cleaned_lines).strip()
+    cleaned = "\n".join(cleaned_lines).strip()
+    cleaned = re.sub(r"\s*\[chk-[A-Za-z0-9_-]+\]", "", cleaned)
+    return cleaned.strip()
 
 
 def _has_unbalanced_delimiters(text: str) -> bool:
@@ -925,8 +1075,10 @@ async def chat(
     retrieval_cfg = settings.retrieval
     request_scope, request_context_items = _split_request_context(req.context)
     retrieval_query = _build_retrieval_query(req.query, req.history)
+    explicit_source_prefix = _explicit_docvqa_source_prefix(req.query)
     workspace_evidences: list[Evidence] = []
     uploaded_image_evidences = _build_uploaded_image_evidences(req.image_data_urls)
+    explicit_sample_evidence = _build_explicit_docvqa_sample_evidence(req.query)
 
     if req.workspace_id:
         try:
@@ -949,16 +1101,20 @@ async def chat(
         image_data_urls=req.image_data_urls,
         workspace_evidences=workspace_evidences,
     )
+    if prefer_uploaded_images_only:
+        workspace_evidences = []
 
     try:
         retrieved_evidences = []
         if request_scope != "context-only" and not prefer_workspace_only and not prefer_uploaded_images_only:
             retrieved_evidences = await retriever.retrieve(retrieval_query, top_k=retrieval_cfg.top_k_text)
+            retrieved_evidences = _filter_evidences_to_source_prefix(retrieved_evidences, explicit_source_prefix)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"retrieval_failed: {exc}") from exc
 
     request_context_evidences = _build_fallback_evidence(request_context_items)
-    request_context_evidences = uploaded_image_evidences + request_context_evidences
+    anchored_evidences = [explicit_sample_evidence] if explicit_sample_evidence else []
+    request_context_evidences = anchored_evidences + uploaded_image_evidences + request_context_evidences
     evidences = _merge_evidences(
         workspace_evidences=workspace_evidences,
         retrieved_evidences=retrieved_evidences,
@@ -966,6 +1122,7 @@ async def chat(
         scope=request_scope,
         prefer_workspace_only=(prefer_workspace_only or prefer_uploaded_images_only),
     )
+    evidences = _filter_evidences_to_source_prefix(evidences, explicit_source_prefix)
 
     if not evidences and retrieval_cfg.fallback_to_request_context and request_context_items:
         evidences = _build_fallback_evidence(request_context_items)
@@ -985,7 +1142,15 @@ async def chat(
         "Do not fabricate citations, page numbers, experimental details, or file contents."
     )
     evidence_block = _render_evidence_block(evidences, retrieval_cfg.context_max_chars)
+    workspace_grounding_images = _collect_workspace_grounding_images(evidences)
     visual_assist_images, visual_assist_hints = _build_generation_visual_assist(req.query, evidences)
+    explicit_sample_image_urls: list[str] = []
+    if explicit_sample_evidence and explicit_sample_evidence.source_path:
+        explicit_image_path = _resolve_local_path(explicit_sample_evidence.source_path)
+        if explicit_image_path:
+            explicit_data_url = _image_file_to_data_url(explicit_image_path)
+            if explicit_data_url:
+                explicit_sample_image_urls.append(explicit_data_url)
     visual_hint_block = ""
     if visual_assist_hints:
         visual_hint_block = "Retrieved Visual Hints:\n" + "\n".join(visual_assist_hints) + "\n\n"
@@ -1034,9 +1199,17 @@ async def chat(
     user_content: list[dict[str, object]] = [{"type": "text", "text": user_text}]
     for data_url in req.image_data_urls:
         user_content.append({"type": "image_url", "image_url": {"url": data_url}})
+    for data_url in workspace_grounding_images:
+        user_content.append({"type": "image_url", "image_url": {"url": data_url}})
+    for data_url in explicit_sample_image_urls:
+        user_content.append({"type": "image_url", "image_url": {"url": data_url}})
     for data_url in visual_assist_images:
         user_content.append({"type": "image_url", "image_url": {"url": data_url}})
-    if _needs_vl_placeholder_image(settings.vlm.model, req.image_data_urls, visual_assist_images):
+    if _needs_vl_placeholder_image(
+        settings.vlm.model,
+        req.image_data_urls,
+        workspace_grounding_images + explicit_sample_image_urls + visual_assist_images,
+    ):
         # Some VL endpoints reject text-only requests. A transparent 1x1 image keeps the
         # request format valid without exposing extra document evidence to the model.
         user_content.append({"type": "image_url", "image_url": {"url": TRANSPARENT_PIXEL_DATA_URL}})

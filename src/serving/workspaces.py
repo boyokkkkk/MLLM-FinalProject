@@ -36,6 +36,19 @@ EXHAUSTIVE_QUERY_MARKERS = (
 )
 HTML_TAG_RE = re.compile(r"<[^>]+>")
 NON_WORD_RE = re.compile(r"[^A-Za-z0-9\u4e00-\u9fff]+")
+ASSET_CODE_RE = re.compile(r"^[A-Za-z]+\d+(?:-\d+)?")
+PAGE_QUERY_RE = re.compile(r"(?:第\s*(?P<cn>[零一二三四五六七八九十百两\d]+)\s*页|page\s*(?P<en>\d+)|p\.\s*(?P<short>\d+))", re.IGNORECASE)
+ENGLISH_SPECIAL_TERM_RE = re.compile(r"\b(?:[A-Z][A-Za-z0-9]+(?:-[A-Z][A-Za-z0-9]+)+|KeyGen|Encrypt|Decrypt|Setup|Extract)\b")
+WORKSPACE_FLOW_TERM_MARKERS = (
+    "核心流程",
+    "四个阶段",
+    "四阶段",
+    "setup",
+    "keygen",
+    "encrypt",
+    "decrypt",
+    "extract",
+)
 DEFINITION_QUERY_RE = re.compile(r"(?:什么是|是什么|解释|请解释|说明|介绍)")
 
 
@@ -101,6 +114,154 @@ def _normalize_match_text(text: str | None) -> str:
         return ""
     stripped = HTML_TAG_RE.sub("", text)
     return NON_WORD_RE.sub("", stripped).lower()
+
+
+def _asset_match_candidates(asset_name: str | None) -> list[str]:
+    value = (asset_name or "").strip()
+    if not value:
+        return []
+    path = Path(value)
+    stem = path.stem.strip()
+    candidates = [value, path.name, stem]
+    if "_" in path.name:
+        suffix_name = path.name.split("_", 1)[1].strip()
+        suffix_stem = Path(suffix_name).stem.strip()
+        candidates.extend([suffix_name, suffix_stem])
+    code_match = ASSET_CODE_RE.match(stem)
+    if code_match:
+        candidates.append(code_match.group(0))
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for item in candidates:
+        normalized = _normalize_match_text(item)
+        if normalized and normalized not in seen:
+            seen.add(normalized)
+            ordered.append(normalized)
+    return ordered
+
+
+def _query_mentions_asset(query: str, asset_name: str | None) -> bool:
+    normalized_query = _normalize_match_text(query)
+    if not normalized_query:
+        return False
+    for candidate in _asset_match_candidates(asset_name):
+        if len(candidate) >= 2 and candidate in normalized_query:
+            return True
+    return False
+
+
+def _workspace_chunk_asset_name(chunk: dict[str, Any]) -> str:
+    metadata = chunk.get("metadata") if isinstance(chunk.get("metadata"), dict) else {}
+    return str(metadata.get("asset_name") or Path(str(chunk.get("source_path") or "")).name or "").strip()
+
+
+def _workspace_target_asset_names(query: str, doc_store: dict[str, dict[str, Any]]) -> set[str]:
+    targets: set[str] = set()
+    for chunk in doc_store.values():
+        asset_name = _workspace_chunk_asset_name(chunk)
+        if asset_name and _query_mentions_asset(query, asset_name):
+            targets.add(asset_name)
+    return targets
+
+
+def _extract_page_number(query: str) -> int | None:
+    value = (query or "").strip()
+    if not value:
+        return None
+    match = re.search(r"第\s*([零一二三四五六七八九十百两\d]+)\s*页", value)
+    if match:
+        raw = match.group(1)
+    else:
+        match = PAGE_QUERY_RE.search(value)
+        raw = (match.group("cn") or match.group("en") or match.group("short")) if match else None
+    if not match:
+        return None
+    if not raw:
+        return None
+    cn_digits = {"零": 0, "一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
+    if not raw.isdigit():
+        total = 0
+        current = 0
+        for char in raw:
+            if char in cn_digits:
+                current = cn_digits[char]
+                total += current
+            elif char == "十":
+                if current == 0:
+                    current = 1
+                total = total - current + (current * 10)
+                current = 0
+            elif char == "百":
+                if current == 0:
+                    current = 1
+                total = total - current + (current * 100)
+                current = 0
+        page_no = total
+        return page_no if page_no >= 1 else None
+    try:
+        page_no = int(raw)
+    except ValueError:
+        return None
+    return page_no if page_no >= 1 else None
+
+
+def _is_page_level_query(query: str) -> bool:
+    lowered = (query or "").lower()
+    has_page_marker = ("页" in (query or "")) or ("page" in lowered) or ("p." in lowered)
+    page_no = _extract_page_number(query)
+    if page_no is None and not has_page_marker:
+        return False
+    return any(marker in lowered for marker in ("讲了什么", "内容", "是什么", "what", "summary", "定义", "meaning"))
+
+
+def _extract_english_special_terms(query: str) -> list[str]:
+    terms: list[str] = []
+    for match in ENGLISH_SPECIAL_TERM_RE.finditer(query or ""):
+        term = match.group(0).strip()
+        if term:
+            terms.append(term)
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for term in terms:
+        lowered = term.lower()
+        if lowered not in seen:
+            seen.add(lowered)
+            ordered.append(term)
+    return ordered
+
+
+def _contains_flow_markers(query: str) -> bool:
+    lowered = (query or "").lower()
+    return any(marker in lowered for marker in WORKSPACE_FLOW_TERM_MARKERS)
+
+
+def _workspace_special_term_bonus(query: str, text: str, title: str | None = None) -> float:
+    haystacks = [text or "", title or ""]
+    lowered_haystacks = [item.lower() for item in haystacks]
+    bonus = 0.0
+    for term in _extract_english_special_terms(query):
+        lowered = term.lower()
+        if lowered in (title or "").lower():
+            bonus += 2.2 + min(len(term), 18) * 0.03
+        elif lowered in (text or "").lower():
+            bonus += 0.75 + min(len(term), 18) * 0.02
+    if _contains_flow_markers(query):
+        for marker in ("setup", "keygen", "encrypt", "decrypt", "extract"):
+            if marker in (title or "").lower():
+                bonus += 1.0
+            elif marker in (text or "").lower():
+                bonus += 0.35
+    return bonus
+
+
+def _is_overview_like_section_title(title: str | None) -> bool:
+    value = (title or "").strip()
+    if not value:
+        return False
+    if value.startswith(("一、", "二、", "三、", "四、", "五、", "六、", "七、", "八、", "九、")):
+        return True
+    lowered = value.lower()
+    return lowered.startswith(("introduction", "overview", "background"))
 
 
 def _is_definition_like_query(query: str) -> bool:
@@ -229,6 +390,34 @@ def _is_exhaustive_workspace_query(query: str) -> bool:
     if not value:
         return False
     return any(marker in value for marker in EXHAUSTIVE_QUERY_MARKERS)
+
+
+def _render_pdf_page_image(pdf_path: Path, page_no: int, cache_dir: Path) -> Path | None:
+    if page_no < 1 or not pdf_path.exists() or pdf_path.suffix.lower() != ".pdf":
+        return None
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    output_path = cache_dir / f"{pdf_path.stem}_page_{page_no}.png"
+    if output_path.exists():
+        return output_path
+    try:
+        import pypdfium2 as pdfium
+    except Exception:
+        return None
+    try:
+        pdf = pdfium.PdfDocument(str(pdf_path))
+        if page_no > len(pdf):
+            return None
+        page = pdf.get_page(page_no - 1)
+        try:
+            bitmap = page.render(scale=2.0)
+            pil_image = bitmap.to_pil()
+            pil_image.save(output_path)
+        finally:
+            page.close()
+            pdf.close()
+    except Exception:
+        return None
+    return output_path if output_path.exists() else None
 
 
 class WorkspaceManager:
@@ -388,9 +577,37 @@ class WorkspaceManager:
         doc_store = json.loads(doc_store_path.read_text(encoding="utf-8"))
         if not isinstance(doc_store, dict):
             return []
-        n_docs = max(1, len(doc_store))
+        explicit_target_assets = _workspace_target_asset_names(query, doc_store)
+        asset_records: dict[str, dict[str, Any]] = {}
+        for asset in meta.get("assets", []):
+            for key in (
+                str(asset.get("name") or "").strip(),
+                str(asset.get("stored_name") or "").strip(),
+                Path(str(asset.get("path") or "")).name,
+            ):
+                if key:
+                    asset_records[key] = asset
+        target_page_no = _extract_page_number(query)
+        candidate_doc_store = doc_store
+        if explicit_target_assets:
+            asset_filtered = {
+                chunk_id: chunk
+                for chunk_id, chunk in doc_store.items()
+                if _workspace_chunk_asset_name(chunk) in explicit_target_assets
+            }
+            if asset_filtered:
+                candidate_doc_store = asset_filtered
+        if explicit_target_assets and target_page_no is not None and _is_page_level_query(query):
+            page_filtered = {
+                chunk_id: chunk
+                for chunk_id, chunk in candidate_doc_store.items()
+                if chunk.get("page_no") == target_page_no
+            }
+            if page_filtered:
+                candidate_doc_store = page_filtered
+        n_docs = max(1, len(candidate_doc_store))
         doc_frequency: dict[str, int] = {}
-        for chunk in doc_store.values():
+        for chunk in candidate_doc_store.values():
             tf = chunk.get("tf") if isinstance(chunk.get("tf"), dict) else {}
             for term in tf:
                 doc_frequency[term] = doc_frequency.get(term, 0) + 1
@@ -399,7 +616,7 @@ class WorkspaceManager:
         candidate_limit = max(top_k, 12)
         ranked = rank_sparse_chunks(
             query=query,
-            doc_store=doc_store,
+            doc_store=candidate_doc_store,
             idf=idf,
             limit=max(candidate_limit, 14 if exhaustive_query else candidate_limit),
             score_threshold=0.0,
@@ -416,9 +633,11 @@ class WorkspaceManager:
                 section_title = str(metadata.get("section_title") or "").strip() or None
                 raw_type = str(metadata.get("raw_type") or "").strip().lower()
                 text = str(item.get("text") or "")
+                page_no = item.get("page_no")
                 definition_like = _is_definition_like_query(query)
                 title_bonus = _title_overlap_score(query, section_title)
                 phrase_bonus = _query_match_bonus(query, text, section_title)
+                special_term_bonus = _workspace_special_term_bonus(query, text, section_title)
                 boilerplate_penalty = 0.0
                 if raw_type == "footer" and phrase_bonus <= 0.0:
                     boilerplate_penalty += 0.08
@@ -426,11 +645,48 @@ class WorkspaceManager:
                     boilerplate_penalty += 0.04
                 if definition_like and phrase_bonus > 0.0 and _looks_like_brief_heading_text(text):
                     boilerplate_penalty += 0.42
+                if _contains_flow_markers(query) and _is_overview_like_section_title(section_title):
+                    boilerplate_penalty += 0.36
+                if _contains_flow_markers(query) and section_title and section_title.strip() == "一、基于身份的加密 IBE":
+                    boilerplate_penalty += 0.52
+                page_bonus = 0.0
+                if target_page_no is not None:
+                    if page_no == target_page_no:
+                        page_bonus += 2.8 if _is_page_level_query(query) else 1.2
+                    elif _is_page_level_query(query):
+                        page_bonus -= 0.18
                 reranked_with_titles.append(
-                    (base_score + (title_bonus * 0.18) + phrase_bonus - boilerplate_penalty, item)
+                    (base_score + (title_bonus * 0.18) + phrase_bonus + special_term_bonus + page_bonus - boilerplate_penalty, item)
                 )
             reranked_with_titles.sort(key=lambda pair: pair[0], reverse=True)
             ranked = reranked_with_titles
+
+        if explicit_target_assets and ranked:
+            target_ranked = [
+                (score, item)
+                for score, item in ranked
+                if _workspace_chunk_asset_name(item) in explicit_target_assets
+            ]
+            other_ranked = [
+                (score, item)
+                for score, item in ranked
+                if _workspace_chunk_asset_name(item) not in explicit_target_assets
+            ]
+            if target_ranked:
+                ranked = target_ranked + other_ranked
+        if explicit_target_assets and target_page_no is not None and ranked:
+            same_page_ranked = [
+                (score, item)
+                for score, item in ranked
+                if _workspace_chunk_asset_name(item) in explicit_target_assets and item.get("page_no") == target_page_no
+            ]
+            other_ranked = [
+                (score, item)
+                for score, item in ranked
+                if not (_workspace_chunk_asset_name(item) in explicit_target_assets and item.get("page_no") == target_page_no)
+            ]
+            if same_page_ranked:
+                ranked = same_page_ranked + other_ranked
 
         selected_items = [item for _, item in ranked[:top_k]]
         expand_same_page = exhaustive_query
@@ -498,6 +754,47 @@ class WorkspaceManager:
                     bbox=item.get("bbox") if isinstance(item.get("bbox"), list) else None,
                 )
             )
+
+        fallback_page_no = target_page_no
+        if fallback_page_no is None and _is_page_level_query(query):
+            for evidence in evidences:
+                if evidence.page is not None:
+                    fallback_page_no = evidence.page
+                    break
+
+        if fallback_page_no is not None and _is_page_level_query(query):
+            target_asset_name: str | None = None
+            if len(explicit_target_assets) == 1:
+                target_asset_name = next(iter(explicit_target_assets))
+            else:
+                pdf_assets = [asset for asset in meta.get("assets", []) if str(asset.get("name", "")).lower().endswith(".pdf")]
+                if len(pdf_assets) == 1:
+                    target_asset_name = str(pdf_assets[0].get("name") or "").strip()
+            target_asset = asset_records.get(target_asset_name or "")
+            if target_asset:
+                raw_pdf_path = Path(str(target_asset.get("path") or ""))
+                rendered = _render_pdf_page_image(
+                    raw_pdf_path,
+                    fallback_page_no,
+                    workspace_dir / "rendered_pages",
+                )
+                if rendered:
+                    evidences.insert(
+                        0,
+                        Evidence(
+                            chunk_id=f"workspace_page_render_{target_asset.get('asset_id')}_{fallback_page_no}",
+                            source=f"workspace_file:{target_asset_name}",
+                            page=fallback_page_no,
+                            text=f"Rendered PDF page {fallback_page_no} from {target_asset_name} for workspace page-grounded reading.",
+                            snippet=f"Rendered PDF page {fallback_page_no} from {target_asset_name}.",
+                            score=9.0,
+                            section_title=f"Page {fallback_page_no} render",
+                            citation_kind="workspace_indexed",
+                            chunk_type="page_image",
+                            image_path=str(rendered),
+                            source_path=str(raw_pdf_path),
+                        ),
+                    )
         return evidences
 
     def _workspace_dir(self, workspace_id: str) -> Path:

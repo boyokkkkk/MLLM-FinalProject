@@ -423,7 +423,8 @@ def build_grouped_bar_chart(
             visible_h = h if h > 0 else 0.9
             d.add(Rect(x, y0, bar_w, visible_h, fillColor=row["color"], strokeColor=row["color"]))
             if show_value_labels and series_idx >= label_series_start:
-                y_label = y0 + visible_h + 5 + (series_idx - label_series_start) * 8
+                label_inside = visible_h >= 46
+                y_label = y0 + visible_h - 11 if label_inside else y0 + visible_h + 5
                 d.add(
                     String(
                         x + bar_w / 2,
@@ -432,48 +433,100 @@ def build_grouped_bar_chart(
                         fontName="Times-Roman",
                         fontSize=7.2,
                         textAnchor="middle",
-                        fillColor=PALETTE["muted"],
+                        fillColor=colors.white if label_inside else PALETTE["muted"],
                     )
                 )
         d.add(String(center, y0 - 18, metric_label, fontName="Times-Bold", fontSize=8.5, textAnchor="middle", fillColor=PALETTE["ink"]))
     return _save_drawing(d, stem)
 
 
-def build_tradeoff_scatter(rows: list[dict[str, Any]]) -> list[str]:
-    width, height = 640, 340
+def build_tradeoff_scatter(rows: list[dict[str, Any]], title: str, subtitle: str = "") -> list[str]:
+    width, height = 680, 360
     d = Drawing(width, height)
     d.add(Rect(0, 0, width, height, fillColor=PALETTE["bg"], strokeColor=PALETTE["bg"]))
-    _add_title(d, "Grounding-Quality Frontier")
+    _add_title(d, title, subtitle)
 
-    x0, y0, plot_w, plot_h = 80, 78, 504, 196
-    x_min, x_max = 85.0, 91.5
-    y_min, y_max = 87.0, 97.0
+    x0, y0, plot_w, plot_h = 84, 82, 530, 204
+    x_values = [_pct(row["citation_accuracy"]) for row in rows]
+    y_values = [_pct(row["anls"]) for row in rows]
+    x_min = max(0.0, min(x_values) - 5.0)
+    x_max = min(100.0, max(x_values) + 5.0)
+    y_min = max(0.0, min(y_values) - 8.0)
+    y_max = min(100.0, max(y_values) + 6.0)
+    if x_max - x_min < 10.0:
+        x_max = min(100.0, x_min + 10.0)
+    if y_max - y_min < 10.0:
+        y_max = min(100.0, y_min + 10.0)
     d.add(Line(x0, y0, x0, y0 + plot_h, strokeColor=PALETTE["ink"], strokeWidth=0.9))
     d.add(Line(x0, y0, x0 + plot_w, y0, strokeColor=PALETTE["ink"], strokeWidth=0.9))
-    for x_tick in [85, 87, 89, 91]:
+
+    x_ticks: list[float] = []
+    x_step = 10.0 if (x_max - x_min) > 40.0 else 5.0
+    tick = (int(x_min / x_step)) * x_step
+    while tick <= x_max + 1e-6:
+        x_ticks.append(tick)
+        tick += x_step
+    y_ticks: list[float] = []
+    y_step = 10.0 if (y_max - y_min) > 40.0 else 5.0
+    tick = (int(y_min / y_step)) * y_step
+    while tick <= y_max + 1e-6:
+        y_ticks.append(tick)
+        tick += y_step
+
+    for x_tick in x_ticks:
         x = x0 + ((x_tick - x_min) / (x_max - x_min)) * plot_w
         d.add(Line(x, y0, x, y0 + plot_h, strokeColor=PALETTE["grid"], strokeWidth=0.7))
         d.add(String(x, y0 - 16, f"{x_tick:.0f}", fontName="Times-Roman", fontSize=7.8, textAnchor="middle", fillColor=PALETTE["muted"]))
-    for y_tick in [88, 90, 92, 94, 96]:
+    for y_tick in y_ticks:
         y = y0 + ((y_tick - y_min) / (y_max - y_min)) * plot_h
         d.add(Line(x0, y, x0 + plot_w, y, strokeColor=PALETTE["grid"], strokeWidth=0.7))
         d.add(String(x0 - 8, y - 3, f"{y_tick:.0f}", fontName="Times-Roman", fontSize=7.8, textAnchor="end", fillColor=PALETTE["muted"]))
     d.add(String(x0 + plot_w / 2, y0 - 30, "Citation@1 (%)", fontName="Times-Bold", fontSize=9, textAnchor="middle", fillColor=PALETTE["ink"]))
     d.add(String(18, y0 + plot_h / 2, "ANLS (%)", fontName="Times-Bold", fontSize=9, fillColor=PALETTE["ink"], angle=90))
 
-    label_offsets = {
-        "Base": (8, -10),
-        "Old": (8, 8),
-        "QIA": (-24, 9),
-        "QIA+VA": (8, 8),
-    }
+    placed: list[tuple[float, float, float, float]] = []
+    jitter_patterns = [(0.0, 0.0), (-7.0, 8.0), (7.0, -8.0), (-9.0, -8.0), (9.0, 8.0), (0.0, 12.0), (0.0, -12.0)]
+    collision_counts: dict[tuple[int, int], int] = {}
+
     for row in rows:
         x = x0 + ((_pct(row["citation_accuracy"]) - x_min) / (x_max - x_min)) * plot_w
         y = y0 + ((_pct(row["anls"]) - y_min) / (y_max - y_min)) * plot_h
-        radius = max(5.0, 4.5 + (_pct(row["exact_match"]) - 75.0) * 0.20)
+        key = (round(x / 6.0), round(y / 6.0))
+        dup_idx = collision_counts.get(key, 0)
+        collision_counts[key] = dup_idx + 1
+        jx, jy = jitter_patterns[min(dup_idx, len(jitter_patterns) - 1)]
+        x += jx
+        y += jy
+        radius = max(5.0, 4.8 + (_pct(row["exact_match"]) - 50.0) * 0.06)
         d.add(Circle(x, y, radius, fillColor=row["color"], strokeColor=colors.white, strokeWidth=1.0))
-        dx, dy = label_offsets.get(str(row["label"]), (8, 8))
-        d.add(String(x + dx, y + dy, str(row["label"]), fontName="Times-Roman", fontSize=8, fillColor=PALETTE["ink"]))
+        label = str(row["label"])
+        approx_w = max(28.0, len(label) * 4.6)
+        default_dx = float(row.get("label_dx", 8))
+        default_dy = float(row.get("label_dy", 8))
+        if x > x0 + plot_w - 52:
+            default_dx = -approx_w - 10
+        elif x < x0 + 36:
+            default_dx = 10
+        label_x = x + default_dx
+        label_y = y + default_dy
+        label_h = 10.0
+        for _ in range(10):
+            overlaps = False
+            for px0, py0, px1, py1 in placed:
+                if not (label_x + approx_w < px0 or label_x > px1 or label_y + label_h < py0 or label_y > py1):
+                    label_y += 10.0
+                    overlaps = True
+                    break
+            if not overlaps:
+                break
+        min_x = 4.0
+        max_x = width - approx_w - 4.0
+        min_y = 8.0
+        max_y = height - 18.0
+        label_x = max(min_x, min(label_x, max_x))
+        label_y = max(min_y, min(label_y, max_y))
+        placed.append((label_x, label_y - 2.0, label_x + approx_w, label_y + label_h))
+        d.add(String(label_x, label_y, label, fontName="Times-Roman", fontSize=8, fillColor=PALETTE["ink"]))
     return _save_drawing(d, "fig_grounding_vs_quality_tradeoff")
 
 
@@ -603,59 +656,67 @@ def build_tables(
 
     main_rows = [
         {
-            "line": "promptfix_v3",
-            "benchmark": "original val-100",
-            "type": "retrieval",
-            "hit@5": _format_metric(data["orig_promptfix_retr"]["hit_at_k"]),
-            "precision@5": _format_metric(data["orig_promptfix_retr"]["precision_at_k"]),
-            "citation@1": _format_metric(data["orig_promptfix_retr"]["citation_accuracy"]),
-            "EM": "-",
-            "ANLS": "-",
-            "Token-F1": "-",
+            "setting": "stronger_qia_base",
+            "regime": "historical mixed",
+            "hit@5": _format_metric(data["historical_base"]["hit_at_k"]),
+            "citation@1": _format_metric(data["historical_base"]["citation_accuracy"]),
+            "EM": _format_metric(data["historical_base"]["exact_match"]),
+            "ANLS": _format_metric(data["historical_base"]["anls"], digits=6),
+            "Token-F1": _format_metric(data["historical_base"]["token_f1"], digits=6),
         },
         {
-            "line": "exp5_densefusion_w045",
-            "benchmark": "original val-100",
-            "type": "retrieval",
-            "hit@5": _format_metric(data["orig_exp5_retr"]["hit_at_k"]),
-            "precision@5": _format_metric(data["orig_exp5_retr"]["precision_at_k"]),
-            "citation@1": _format_metric(data["orig_exp5_retr"]["citation_accuracy"]),
-            "EM": "-",
-            "ANLS": "-",
-            "Token-F1": "-",
+            "setting": "stronger_qia_visualassist_gated_v2",
+            "regime": "historical mixed",
+            "hit@5": _format_metric(data["historical_visual_gated"]["hit_at_k"]),
+            "citation@1": _format_metric(data["historical_visual_gated"]["citation_accuracy"]),
+            "EM": _format_metric(data["historical_visual_gated"]["exact_match"]),
+            "ANLS": _format_metric(data["historical_visual_gated"]["anls"], digits=6),
+            "Token-F1": _format_metric(data["historical_visual_gated"]["token_f1"], digits=6),
         },
         {
-            "line": "stronger_qia_v6",
-            "benchmark": "unique-docpage-100 rebuilt",
-            "type": "retrieval",
-            "hit@5": _format_metric(data["repaired_qia_retr"]["hit_at_k"]),
-            "precision@5": _format_metric(data["repaired_qia_retr"]["precision_at_k"]),
-            "citation@1": _format_metric(data["repaired_qia_retr"]["citation_accuracy"]),
-            "EM": "-",
-            "ANLS": "-",
-            "Token-F1": "-",
+            "setting": "cg_text_only",
+            "regime": "Corpus-grounded RAG",
+            "hit@5": _format_metric(data["cg_text_only"]["hit_at_k"]),
+            "citation@1": _format_metric(data["cg_text_only"]["citation_accuracy"]),
+            "EM": _format_metric(data["cg_text_only"]["exact_match"]),
+            "ANLS": _format_metric(data["cg_text_only"]["anls"], digits=6),
+            "Token-F1": _format_metric(data["cg_text_only"]["token_f1"], digits=6),
         },
         {
-            "line": "stronger_qia_base",
-            "benchmark": "unique-docpage-100 rebuilt",
-            "type": "rag",
-            "hit@5": _format_metric(data["repaired_qia_rag_base"]["hit_at_k"]),
-            "precision@5": _format_metric(data["repaired_qia_rag_base"]["precision_at_k"]),
-            "citation@1": _format_metric(data["repaired_qia_rag_base"]["citation_accuracy"]),
-            "EM": _format_metric(data["repaired_qia_rag_base"]["exact_match"]),
-            "ANLS": _format_metric(data["repaired_qia_rag_base"]["anls"], digits=6),
-            "Token-F1": _format_metric(data["repaired_qia_rag_base"]["token_f1"], digits=6),
+            "setting": "cg_visualassist_gated",
+            "regime": "Corpus-grounded RAG",
+            "hit@5": _format_metric(data["cg_visual_gated"]["hit_at_k"]),
+            "citation@1": _format_metric(data["cg_visual_gated"]["citation_accuracy"]),
+            "EM": _format_metric(data["cg_visual_gated"]["exact_match"]),
+            "ANLS": _format_metric(data["cg_visual_gated"]["anls"], digits=6),
+            "Token-F1": _format_metric(data["cg_visual_gated"]["token_f1"], digits=6),
         },
         {
-            "line": "stronger_qia_visualassist_gated_v2",
-            "benchmark": "unique-docpage-100 rebuilt",
-            "type": "rag",
-            "hit@5": _format_metric(data["repaired_qia_rag_visual_gated"]["hit_at_k"]),
-            "precision@5": _format_metric(data["repaired_qia_rag_visual_gated"]["precision_at_k"]),
-            "citation@1": _format_metric(data["repaired_qia_rag_visual_gated"]["citation_accuracy"]),
-            "EM": _format_metric(data["repaired_qia_rag_visual_gated"]["exact_match"]),
-            "ANLS": _format_metric(data["repaired_qia_rag_visual_gated"]["anls"], digits=6),
-            "Token-F1": _format_metric(data["repaired_qia_rag_visual_gated"]["token_f1"], digits=6),
+            "setting": "cg_visualassist_always",
+            "regime": "Corpus-grounded RAG",
+            "hit@5": _format_metric(data["cg_visual_always"]["hit_at_k"]),
+            "citation@1": _format_metric(data["cg_visual_always"]["citation_accuracy"]),
+            "EM": _format_metric(data["cg_visual_always"]["exact_match"]),
+            "ANLS": _format_metric(data["cg_visual_always"]["anls"], digits=6),
+            "Token-F1": _format_metric(data["cg_visual_always"]["token_f1"], digits=6),
+        },
+        {
+            "setting": "qiaqa_text_only",
+            "regime": "Query-image assisted QA",
+            "hit@5": _format_metric(data["qiaqa_text_only"]["hit_at_k"]),
+            "citation@1": _format_metric(data["qiaqa_text_only"]["citation_accuracy"]),
+            "EM": _format_metric(data["qiaqa_text_only"]["exact_match"]),
+            "ANLS": _format_metric(data["qiaqa_text_only"]["anls"], digits=6),
+            "Token-F1": _format_metric(data["qiaqa_text_only"]["token_f1"], digits=6),
+        },
+        {
+            "setting": "qiaqa_visualassist_gated",
+            "regime": "Query-image assisted QA",
+            "hit@5": _format_metric(data["qiaqa_visual_gated"]["hit_at_k"]),
+            "citation@1": _format_metric(data["qiaqa_visual_gated"]["citation_accuracy"]),
+            "EM": _format_metric(data["qiaqa_visual_gated"]["exact_match"]),
+            "ANLS": _format_metric(data["qiaqa_visual_gated"]["anls"], digits=6),
+            "Token-F1": _format_metric(data["qiaqa_visual_gated"]["token_f1"], digits=6),
         },
     ]
     fieldnames = list(main_rows[0].keys())
@@ -671,39 +732,67 @@ def build_tables(
         tex_path,
         fieldnames,
         md_rows,
-        caption="Closeout benchmark summary across historical and repaired benchmark lines.",
+        caption="Final paper summary across the historical mixed setting, corpus-grounded RAG, and query-image assisted QA.",
         label="tab:closeout-main-results",
     )
     files.append(str(tex_path))
 
     retrieval_rows = [
         {
-            "line": "promptfix_v3",
-            "benchmark": "original val-100",
-            "hit@5": _format_metric(data["orig_promptfix_retr"]["hit_at_k"]),
-            "precision@5": _format_metric(data["orig_promptfix_retr"]["precision_at_k"]),
-            "citation@1": _format_metric(data["orig_promptfix_retr"]["citation_accuracy"]),
+            "setting": "page_text",
+            "family": "index",
+            "hit@5": _format_metric(data["index_page_text"]["hit_at_k"]),
+            "precision@5": _format_metric(data["index_page_text"]["precision_at_k"]),
+            "citation@1": _format_metric(data["index_page_text"]["citation_accuracy"]),
         },
         {
-            "line": "exp5_densefusion_w045",
-            "benchmark": "original val-100",
-            "hit@5": _format_metric(data["orig_exp5_retr"]["hit_at_k"]),
-            "precision@5": _format_metric(data["orig_exp5_retr"]["precision_at_k"]),
-            "citation@1": _format_metric(data["orig_exp5_retr"]["citation_accuracy"]),
+            "setting": "block_text",
+            "family": "index",
+            "hit@5": _format_metric(data["index_block_text"]["hit_at_k"]),
+            "precision@5": _format_metric(data["index_block_text"]["precision_at_k"]),
+            "citation@1": _format_metric(data["index_block_text"]["citation_accuracy"]),
         },
         {
-            "line": "stronger_rebuilt_top1v2",
-            "benchmark": "unique-docpage-100 rebuilt",
-            "hit@5": _format_metric(data["repaired_top1v2_retr"]["hit_at_k"]),
-            "precision@5": _format_metric(data["repaired_top1v2_retr"]["precision_at_k"]),
-            "citation@1": _format_metric(data["repaired_top1v2_retr"]["citation_accuracy"]),
+            "setting": "block_multimodal",
+            "family": "index",
+            "hit@5": _format_metric(data["index_block_multimodal"]["hit_at_k"]),
+            "precision@5": _format_metric(data["index_block_multimodal"]["precision_at_k"]),
+            "citation@1": _format_metric(data["index_block_multimodal"]["citation_accuracy"]),
         },
         {
-            "line": "stronger_qia_v6",
-            "benchmark": "unique-docpage-100 rebuilt",
-            "hit@5": _format_metric(data["repaired_qia_retr"]["hit_at_k"]),
-            "precision@5": _format_metric(data["repaired_qia_retr"]["precision_at_k"]),
-            "citation@1": _format_metric(data["repaired_qia_retr"]["citation_accuracy"]),
+            "setting": "basic",
+            "family": "retrieval chain",
+            "hit@5": _format_metric(data["retr_basic"]["hit_at_k"]),
+            "precision@5": _format_metric(data["retr_basic"]["precision_at_k"]),
+            "citation@1": _format_metric(data["retr_basic"]["citation_accuracy"]),
+        },
+        {
+            "setting": "stronger",
+            "family": "retrieval chain",
+            "hit@5": _format_metric(data["retr_stronger"]["hit_at_k"]),
+            "precision@5": _format_metric(data["retr_stronger"]["precision_at_k"]),
+            "citation@1": _format_metric(data["retr_stronger"]["citation_accuracy"]),
+        },
+        {
+            "setting": "stronger_qta",
+            "family": "retrieval chain",
+            "hit@5": _format_metric(data["retr_stronger_qta"]["hit_at_k"]),
+            "precision@5": _format_metric(data["retr_stronger_qta"]["precision_at_k"]),
+            "citation@1": _format_metric(data["retr_stronger_qta"]["citation_accuracy"]),
+        },
+        {
+            "setting": "stronger_qia",
+            "family": "retrieval chain",
+            "hit@5": _format_metric(data["retr_stronger_qia"]["hit_at_k"]),
+            "precision@5": _format_metric(data["retr_stronger_qia"]["precision_at_k"]),
+            "citation@1": _format_metric(data["retr_stronger_qia"]["citation_accuracy"]),
+        },
+        {
+            "setting": "densefusion",
+            "family": "retrieval chain",
+            "hit@5": _format_metric(data["retr_densefusion"]["hit_at_k"]),
+            "precision@5": _format_metric(data["retr_densefusion"]["precision_at_k"]),
+            "citation@1": _format_metric(data["retr_densefusion"]["citation_accuracy"]),
         },
     ]
     retrieval_fields = list(retrieval_rows[0].keys())
@@ -715,7 +804,7 @@ def build_tables(
         r_tex,
         retrieval_fields,
         [[str(row[key]) for key in retrieval_fields] for row in retrieval_rows],
-        caption="Retrieval progression from the historical benchmark to the repaired benchmark mainline.",
+        caption="Index and retrieval-chain ablations on the repaired unique-docpage-100 benchmark.",
         label="tab:retrieval-progression",
     )
     files.append(str(r_tex))
@@ -766,30 +855,32 @@ def _write_readme(manifest: dict[str, Any]) -> str:
         ".\\.venv\\Scripts\\python.exe scripts/16_generate_benchmark_assets.py",
         "```",
         "",
-        "## Current Closeout Mainline",
+        "## Current Final Mainlines",
         "",
         f"- Retrieval: `{retrieval['run']}`",
         f"  - Hit@5 = {retrieval['metrics']['hit_at_k']:.3f}, Precision@5 = {retrieval['metrics']['precision_at_k']:.3f}, Citation@1 = {retrieval['metrics']['citation_accuracy']:.3f}",
         f"- RAG: `{rag['run']}`",
         f"  - Hit@5 = {rag['metrics']['hit_at_k']:.3f}, Precision@5 = {rag['metrics']['precision_at_k']:.3f}, Citation@1 = {rag['metrics']['citation_accuracy']:.3f}, EM = {rag['metrics']['exact_match']:.3f}, ANLS = {rag['metrics']['anls']:.4f}, Token-F1 = {rag['metrics']['token_f1']:.5f}",
+        f"- Query-image assisted QA: `{manifest['supplementary_qiaqa']['run']}`",
+        f"  - EM = {manifest['supplementary_qiaqa']['metrics']['exact_match']:.3f}, ANLS = {manifest['supplementary_qiaqa']['metrics']['anls']:.4f}, Token-F1 = {manifest['supplementary_qiaqa']['metrics']['token_f1']:.5f}",
         "",
         "## Main Figures",
         "",
         "- `fig_benchmark_repair`: benchmark repair justification.",
-        "- `fig_retrieval_progression`: retrieval progression across major lines.",
-        "- `fig_rag_closeout_comparison`: end-to-end RAG comparison.",
-        "- `fig_grounding_vs_quality_tradeoff`: model-selection frontier.",
+        "- `fig_retrieval_progression`: retrieval-chain ablation on the repaired benchmark.",
+        "- `fig_rag_closeout_comparison`: corpus-grounded RAG ablation.",
+        "- `fig_grounding_vs_quality_tradeoff`: grounding-quality frontier across mixed, corpus-grounded, and query-image-assisted settings.",
         "",
         "## Appendix Figures",
         "",
         "- `fig_appendix_question_type_mix`: question-type composition of the fixed manifest.",
-        "- `fig_appendix_error_overview`: final error distribution under the mainline.",
-        "- `fig_appendix_error_by_question_type`: per-type error stratification.",
+        "- `fig_appendix_error_overview`: error distribution for the strongest corpus-grounded line.",
+        "- `fig_appendix_error_by_question_type`: per-type error stratification for the strongest corpus-grounded line.",
         "",
         "## Tables",
         "",
-        "- `table_closeout_main_results.*`: final closeout table.",
-        "- `table_retrieval_progression.*`: retrieval-only progression table.",
+        "- `table_closeout_main_results.*`: unified final comparison table.",
+        "- `table_retrieval_progression.*`: index and retrieval-chain ablation table.",
         "- `table_appendix_error_by_type.*`: appendix table for question types and error counts.",
         "  - `primary_count` is the manifest's primary-type count; `multi_label_support` is the support used in the error stratification table.",
         "",
@@ -798,7 +889,7 @@ def _write_readme(manifest: dict[str, Any]) -> str:
         f"- Original val-100: {manifest['repair_stats']['original_total']} questions, {manifest['repair_stats']['original_unique']} unique doc-pages, {manifest['repair_stats']['original_duplicate']} duplicate-page questions.",
         f"- Repaired unique-docpage-100: {manifest['repair_stats']['repaired_unique']} unique doc-pages, {manifest['repair_stats']['repaired_duplicate']} duplicate-page questions.",
         "",
-        "## Final Error Snapshot",
+        "## Strongest Corpus-Grounded Error Snapshot",
         "",
         f"- Clean hits: {manifest['current_error_summary']['category_counts'].get('clean_hit', 0)}",
         f"- Generation issues: {manifest['current_error_summary']['category_counts'].get('generation_issue', 0)}",
@@ -815,18 +906,27 @@ def build_assets() -> dict[str, Any]:
     _ensure_output_dir()
 
     orig_promptfix_retr = _load_summary(EVAL_DIR / "docvqa_val_100_retrieval_promptfix_v3.summary.json")
-    orig_exp5_retr = _load_summary(EVAL_DIR / "docvqa_val_100_retrieval_exp5_densefusion_w045.summary.json")
-    orig_promptfix_rag = _load_summary(EVAL_DIR / "docvqa_val_100_rag_promptfix_v3.summary.json")
-    orig_exp5_rag = _load_summary(EVAL_DIR / "docvqa_val_100_rag_exp5_densefusion_w045.summary.json")
-    repaired_top1v2 = _load_summary(EVAL_DIR / "docvqa_val_unique_docpage_100_retrieval_stronger_rebuilt_top1v2.summary.json")
     repaired_qia = _load_summary(EVAL_DIR / "docvqa_val_unique_docpage_100_retrieval_stronger_qia_v6.summary.json")
-    repaired_rag_base = _load_summary(EVAL_DIR / "docvqa_val_unique_docpage_100_rag_stronger_qia_base.summary.json")
-    repaired_rag_visual_gated = _load_summary(EVAL_DIR / "docvqa_val_unique_docpage_100_rag_stronger_qia_visualassist_gated_v2.summary.json")
+    historical_base = _load_summary(EVAL_DIR / "docvqa_val_unique_docpage_100_rag_stronger_qia_base.summary.json")
+    historical_visual_gated = _load_summary(EVAL_DIR / "docvqa_val_unique_docpage_100_rag_stronger_qia_visualassist_gated_v2.summary.json")
+    index_page_text = _load_summary(EVAL_DIR / "docvqa_val_unique_docpage_100_ablation_index_page_text.summary.json")
+    index_block_text = _load_summary(EVAL_DIR / "docvqa_val_unique_docpage_100_ablation_index_block_text.summary.json")
+    index_block_multimodal = _load_summary(EVAL_DIR / "docvqa_val_unique_docpage_100_ablation_index_block_multimodal.summary.json")
+    retr_basic = _load_summary(EVAL_DIR / "docvqa_val_unique_docpage_100_ablation_retrieval_basic.summary.json")
+    retr_stronger = _load_summary(EVAL_DIR / "docvqa_val_unique_docpage_100_ablation_retrieval_stronger.summary.json")
+    retr_stronger_qta = _load_summary(EVAL_DIR / "docvqa_val_unique_docpage_100_ablation_retrieval_stronger_qta.summary.json")
+    retr_stronger_qia = _load_summary(EVAL_DIR / "docvqa_val_unique_docpage_100_ablation_retrieval_stronger_qia.summary.json")
+    retr_densefusion = _load_summary(EVAL_DIR / "docvqa_val_unique_docpage_100_ablation_visual_densefusion.summary.json")
+    cg_text_only = _load_summary(EVAL_DIR / "docvqa_val_unique_docpage_100_cg_rag_text_only.summary.json")
+    cg_visual_gated = _load_summary(EVAL_DIR / "docvqa_val_unique_docpage_100_cg_rag_visualassist_gated.summary.json")
+    cg_visual_always = _load_summary(EVAL_DIR / "docvqa_val_unique_docpage_100_cg_rag_visualassist_always.summary.json")
+    qiaqa_text_only = _load_summary(EVAL_DIR / "docvqa_val_unique_docpage_100_qiaqa_text_only.summary.json")
+    qiaqa_visual_gated = _load_summary(EVAL_DIR / "docvqa_val_unique_docpage_100_qiaqa_visualassist_gated.summary.json")
     manifest_summary = _load_json(EVAL_DIR / "docvqa_val_unique_docpage_100.manifest.summary.json")
 
     current_error_rows, current_error_summary = analyze_error_run(
         EVAL_DIR / "docvqa_val_unique_docpage_100.manifest.jsonl",
-        EVAL_DIR / "docvqa_val_unique_docpage_100_rag_stronger_qia_visualassist_gated_v2.jsonl",
+        EVAL_DIR / "docvqa_val_unique_docpage_100_cg_rag_visualassist_always.jsonl",
         limit=100,
     )
     current_error_json = OUTPUT_DIR / "appendix_current_error_summary.json"
@@ -855,13 +955,22 @@ def build_assets() -> dict[str, Any]:
 
     data = {
         "orig_promptfix_retr": orig_promptfix_retr,
-        "orig_exp5_retr": orig_exp5_retr,
-        "orig_promptfix_rag": orig_promptfix_rag,
-        "orig_exp5_rag": orig_exp5_rag,
-        "repaired_top1v2_retr": repaired_top1v2,
+        "historical_base": historical_base,
+        "historical_visual_gated": historical_visual_gated,
+        "index_page_text": index_page_text,
+        "index_block_text": index_block_text,
+        "index_block_multimodal": index_block_multimodal,
+        "retr_basic": retr_basic,
+        "retr_stronger": retr_stronger,
+        "retr_stronger_qta": retr_stronger_qta,
+        "retr_stronger_qia": retr_stronger_qia,
+        "retr_densefusion": retr_densefusion,
         "repaired_qia_retr": repaired_qia,
-        "repaired_qia_rag_base": repaired_rag_base,
-        "repaired_qia_rag_visual_gated": repaired_rag_visual_gated,
+        "cg_text_only": cg_text_only,
+        "cg_visual_gated": cg_visual_gated,
+        "cg_visual_always": cg_visual_always,
+        "qiaqa_text_only": qiaqa_text_only,
+        "qiaqa_visual_gated": qiaqa_visual_gated,
     }
 
     produced_files: list[str] = []
@@ -869,19 +978,21 @@ def build_assets() -> dict[str, Any]:
     produced_files.extend(
         build_grouped_bar_chart(
             stem="fig_retrieval_progression",
-            title="Retrieval Progression",
+            title="Retrieval Ablation on Repaired Benchmark",
             series=[
-                {"color": PALETTE["graybar"], **orig_promptfix_retr},
-                {"color": PALETTE["amber"], **orig_exp5_retr},
-                {"color": PALETTE["teal"], **repaired_top1v2},
-                {"color": PALETTE["coral"], **repaired_qia},
+                {"color": PALETTE["graybar"], **retr_basic},
+                {"color": PALETTE["amber"], **retr_stronger},
+                {"color": PALETTE["teal"], **retr_stronger_qta},
+                {"color": PALETTE["coral"], **retr_stronger_qia},
+                {"color": PALETTE["rose"], **retr_densefusion},
             ],
             metrics=[("hit_at_k", "Hit@5"), ("precision_at_k", "Precision@5"), ("citation_accuracy", "Citation@1")],
             legend_items=[
-                ("PromptFix", PALETTE["graybar"]),
-                ("Old VF", PALETTE["amber"]),
-                ("Top1v2", PALETTE["teal"]),
-                ("Final retrieval", PALETTE["coral"]),
+                ("basic", PALETTE["graybar"]),
+                ("stronger", PALETTE["amber"]),
+                ("stronger+QTA", PALETTE["teal"]),
+                ("stronger+QIA", PALETTE["coral"]),
+                ("densefusion", PALETTE["rose"]),
             ],
             show_value_labels=True,
             label_series_start=0,
@@ -890,25 +1001,22 @@ def build_assets() -> dict[str, Any]:
     produced_files.extend(
         build_grouped_bar_chart(
             stem="fig_rag_closeout_comparison",
-            title="RAG Closeout Comparison",
+            title="Corpus-Grounded RAG Ablation",
             series=[
-                {"color": PALETTE["graybar"], **orig_promptfix_rag},
-                {"color": PALETTE["amber"], **orig_exp5_rag},
-                {"color": PALETTE["teal"], **repaired_rag_base},
-                {"color": PALETTE["coral"], **repaired_rag_visual_gated},
+                {"color": PALETTE["graybar"], **cg_text_only},
+                {"color": PALETTE["teal"], **cg_visual_gated},
+                {"color": PALETTE["coral"], **cg_visual_always},
             ],
             metrics=[
                 ("citation_accuracy", "Citation@1"),
                 ("exact_match", "EM"),
                 ("anls", "ANLS"),
-                ("answer_contains", "Contain"),
                 ("token_f1", "Token-F1"),
             ],
             legend_items=[
-                ("PromptFix", PALETTE["graybar"]),
-                ("Old VF", PALETTE["amber"]),
-                ("QIA base", PALETTE["teal"]),
-                ("QIA + visual assist", PALETTE["coral"]),
+                ("text_only", PALETTE["graybar"]),
+                ("gated", PALETTE["teal"]),
+                ("always", PALETTE["coral"]),
             ],
             show_value_labels=True,
             label_series_start=0,
@@ -917,11 +1025,16 @@ def build_assets() -> dict[str, Any]:
     produced_files.extend(
         build_tradeoff_scatter(
             rows=[
-                {"label": "Base", "color": PALETTE["graybar"], **orig_promptfix_rag},
-                {"label": "Old", "color": PALETTE["amber"], **orig_exp5_rag},
-                {"label": "QIA", "color": PALETTE["teal"], **repaired_rag_base},
-                {"label": "QIA+VA", "color": PALETTE["coral"], **repaired_rag_visual_gated},
-            ]
+                {"label": "hist-base", "color": PALETTE["amber"], "label_dx": 8, "label_dy": -10, **historical_base},
+                {"label": "hist-gated", "color": PALETTE["rose"], "label_dx": 8, "label_dy": 8, **historical_visual_gated},
+                {"label": "cg-text", "color": PALETTE["graybar"], "label_dx": 8, "label_dy": -10, **cg_text_only},
+                {"label": "cg-gated", "color": PALETTE["teal"], "label_dx": 8, "label_dy": 8, **cg_visual_gated},
+                {"label": "cg-always", "color": PALETTE["coral"], "label_dx": 8, "label_dy": 8, **cg_visual_always},
+                {"label": "qiaqa-text", "color": PALETTE["blue"], "label_dx": -46, "label_dy": 8, **qiaqa_text_only},
+                {"label": "qiaqa-gated", "color": PALETTE["green"], "label_dx": -48, "label_dy": -10, **qiaqa_visual_gated},
+            ],
+            title="Grounding vs Answer Quality Frontier",
+            subtitle="Two regimes must be read separately: corpus-grounded RAG vs query-image assisted QA.",
         )
     )
     produced_files.extend(build_question_type_chart(manifest_summary["question_type_counts"]))
@@ -939,24 +1052,33 @@ def build_assets() -> dict[str, Any]:
         "current_error_rows": len(current_error_rows),
         "closeout_mainline": {
             "retrieval": {
-                "run": "docvqa_val_unique_docpage_100_retrieval_stronger_qia_v6",
+                "run": "docvqa_val_unique_docpage_100_ablation_retrieval_stronger_qia",
                 "metrics": {
-                    "hit_at_k": repaired_qia["hit_at_k"],
-                    "precision_at_k": repaired_qia["precision_at_k"],
-                    "citation_accuracy": repaired_qia["citation_accuracy"],
+                    "hit_at_k": retr_stronger_qia["hit_at_k"],
+                    "precision_at_k": retr_stronger_qia["precision_at_k"],
+                    "citation_accuracy": retr_stronger_qia["citation_accuracy"],
                 },
             },
             "rag": {
-                "run": "docvqa_val_unique_docpage_100_rag_stronger_qia_visualassist_gated_v2",
+                "run": "docvqa_val_unique_docpage_100_cg_rag_visualassist_always",
                 "metrics": {
-                    "hit_at_k": repaired_rag_visual_gated["hit_at_k"],
-                    "precision_at_k": repaired_rag_visual_gated["precision_at_k"],
-                    "citation_accuracy": repaired_rag_visual_gated["citation_accuracy"],
-                    "exact_match": repaired_rag_visual_gated["exact_match"],
-                    "anls": repaired_rag_visual_gated["anls"],
-                    "answer_contains": repaired_rag_visual_gated["answer_contains"],
-                    "token_f1": repaired_rag_visual_gated["token_f1"],
+                    "hit_at_k": cg_visual_always["hit_at_k"],
+                    "precision_at_k": cg_visual_always["precision_at_k"],
+                    "citation_accuracy": cg_visual_always["citation_accuracy"],
+                    "exact_match": cg_visual_always["exact_match"],
+                    "anls": cg_visual_always["anls"],
+                    "answer_contains": cg_visual_always["answer_contains"],
+                    "token_f1": cg_visual_always["token_f1"],
                 },
+            },
+        },
+        "supplementary_qiaqa": {
+            "run": "docvqa_val_unique_docpage_100_qiaqa_visualassist_gated",
+            "metrics": {
+                "exact_match": qiaqa_visual_gated["exact_match"],
+                "anls": qiaqa_visual_gated["anls"],
+                "answer_contains": qiaqa_visual_gated["answer_contains"],
+                "token_f1": qiaqa_visual_gated["token_f1"],
             },
         },
     }

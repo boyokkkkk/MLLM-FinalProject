@@ -142,15 +142,15 @@ function app() {
     },
 
     healthLabel() {
-      if (!this.healthOk) return "Backend disconnected";
-      return `Healthy · v${this.health?.version || "-"}`;
+      if (!this.healthOk) return "Disconnected";
+      return `v${this.health?.version || "-"}`;
     },
 
     currentTabLabel() {
       return {
-        query: "Query mode",
-        ingest: "Ingest mode",
-        papers: "Workspace library",
+        query: "Query",
+        ingest: "Ingest",
+        papers: "Papers",
       }[this.tab] || "Workspace";
     },
 
@@ -165,7 +165,7 @@ function app() {
 
     workspaceSummaryPill() {
       if (!this.workspace) return "No workspace";
-      return `${this.workspaceAssetCount()} assets · ${this.workspaceStatusLabel()}`;
+      return `${this.workspaceAssetCount()} assets`;
     },
 
     workspaceProgressPercent() {
@@ -183,11 +183,11 @@ function app() {
     },
 
     queryStatusLabel() {
-      if (this.q.loading) return "Generating answer...";
-      if (this.workspace?.status === "processing") return "Workspace assets are still processing.";
-      if (this.workspace?.status === "failed") return `Workspace processing failed: ${this.workspace?.last_error || "unknown error"}`;
-      if (this.q.images.length) return `This conversation is keeping ${this.q.images.length} temporary image(s) as follow-up context.`;
-      return this.workspace ? "Conversation history will be kept for follow-up questions." : "You can also ask questions without uploading workspace files.";
+      if (this.q.loading) return "Generating...";
+      if (this.workspace?.status === "processing") return "Processing...";
+      if (this.workspace?.status === "failed") return "Processing failed";
+      if (this.q.images.length) return `${this.q.images.length} image(s)`;
+      return "";
     },
 
     setQuestion(question) {
@@ -410,6 +410,24 @@ function app() {
       if (citation?.figure_id) parts.push(String(citation.figure_id));
       else if (citation?.figure_no) parts.push(`fig-${citation.figure_no}`);
       return parts.join(", ");
+    },
+
+    sourcePathHref(path) {
+      if (!path) return "";
+      const normalized = String(path).trim().replace(/\\/g, "/");
+      if (!normalized) return "";
+      if (/^[a-z]+:\/\//i.test(normalized)) return normalized;
+      if (/^[A-Za-z]:\//.test(normalized)) {
+        return encodeURI(`file:///${normalized}`);
+      }
+      if (normalized.startsWith("/")) {
+        return encodeURI(`file://${normalized}`);
+      }
+      return "";
+    },
+
+    hasCitationPreview(citation) {
+      return Boolean(citation?.image_data_url);
     },
 
     decorateAnswerText(text, messageIndex) {
