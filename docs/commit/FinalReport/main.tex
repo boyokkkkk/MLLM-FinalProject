@@ -1,0 +1,528 @@
+%!TeX program = xelatex
+\documentclass{SYSUReport}
+
+\usepackage{tabularx}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{seqsplit}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{etoolbox}
+\usepackage{makecell}
+\usepackage{caption}
+\usepackage{graphicx}
+
+\newcolumntype{Y}{>{\centering\arraybackslash}X}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcommand{\tighttable}{\setlength{\tabcolsep}{4pt}\renewcommand{\arraystretch}{1.08}}
+% 定义自动换行的左对齐 X 列
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+% 如果需要某些列居中，也可以定义：
+% \newcolumntype{C}{>{\centering\arraybackslash}X}
+
+% 根据个人情况修改
+\headl{多模态文档理解}
+\headc{项目结题报告}
+\headr{2026年}
+\lessonTitle{多模态文档理解与检索问答系统}
+\reportTitle{多模态文档理解与检索问答系统结题报告}
+\stuname{陈宝怡 \hspace{1em} 孙韵淇 \hspace{1em} 吴承徽}
+\stuid{23336029 23336215 23336247}
+\inst{计算机学院}
+\major{计算机科学与技术}
+\date{\today}
+
+% 新增：定义 tabularx 的左对齐 X 列，避免长文本在窄列中两端对齐
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+
+\captionsetup[table]{skip=4pt}
+\captionsetup[figure]{skip=4pt}
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.08}
+\AtBeginEnvironment{table}{\footnotesize}
+
+\begin{document}
+
+% =============================================
+% Part 1: 封面
+% =============================================
+\cover
+\thispagestyle{empty}
+\clearpage
+
+% =============================================
+% Part 2： 摘要
+% =============================================
+\begin{abstract}
+
+本项目围绕教育学习、学术研究及日常办公场景中基于复杂文档信息的多模态问答任务，设计并实现了一套以结构化解析、块级索引、视觉辅助生成为核心的多模态检索增强生成系统。项目的初始目标是验证"文档结构感知 + 多模态检索增强"能否有效缓解传统纯文本问答系统在复杂页面理解、长文档检索与证据定位方面的局限；而在具体实现与实验推进过程中，我们进一步发现，真正决定系统结论是否可信的关键，不仅在于模型或模块是否足够复杂，更在于评测对象、索引对象与任务定义三者是否严格对齐。
+
+围绕这一认识，我们完成了三方面工作。其一，构建了从数据标准化、MinerU 页面解析、块级语义切分、轻量索引构建、后端问答服务到 benchmark 评测的完整工程闭环。其二，对原始 \texttt{DocVQA val} 数据集构建 \texttt{unique-docpage-100} 子集，固定评测清单以及与该清单严格对齐的重建索引语料。其三，在修复评测协议后重新审视视觉信息在系统中的作用位置，证明视觉信号在当前项目条件下更适合作为生成阶段的门控辅助，而不宜默认前置为检索阶段的强融合信号。
+
+实验结果表明：在原始 \texttt{val-100} 评测基准上，以视觉稠密融合为核心的历史最佳检索线（\texttt{exp5\_densefusion\_w045}）仅取得 \texttt{Hit@5=0.51}、\texttt{Citation@1=0.13}；而在修复后的 \texttt{unique-docpage-100} 页级评测基准及其对应的重建索引语料上，以文本优先检索、题型感知和查询图像感知重排为核心的检索主线（\texttt{stronger\_qia\_v6}）达到 \texttt{Hit@5=0.95}、\texttt{Precision@5=0.196}、\texttt{Citation@1=0.91}，进一步加入门控视觉辅助后的端到端主线（\texttt{stronger\_qia\_visualassist\_gated\_v2}）达到 \texttt{Hit@5=0.95}、\texttt{Citation@1=0.90}、\texttt{EM=0.87}、\texttt{ANLS=0.962800}、\texttt{Token-F1=0.951780}。研究结果说明，在课程规模的多模态文档问答系统中，稳定的文本优先检索、合理的页级评测构造以及题型敏感的视觉辅助机制，比单纯堆叠更多多模态融合模块，更能带来可信、可解释且可复现的系统提升。
+
+\end{abstract}
+\thispagestyle{empty}
+\clearpage
+
+% =============================================
+% Part 3： 目录页
+% =============================================
+\pagenumbering{Roman}
+\setcounter{page}{1}
+\tableofcontents
+\clearpage
+
+% =============================================
+% Part 4： 正文内容
+% =============================================
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\section{引言}
+
+\subsection{研究背景}
+
+在教学、科研与办公场景中的文档往往同时包含文本、表格、图像、公式与复杂版面结构。对于这类文档，用户不仅希望系统能够答对问题，还希望系统能够定位到对应页面、证据区域与关键短语，从而保证回答可追溯、可核验。
+
+传统纯文本切分方案容易丢失标题、页码、图表边界等非线性信号；而直接依赖整页视觉推理又难以稳定解决"先找哪一页、再读哪一块"的问题。因此，文档问答更适合采用"结构化解析 + 块级检索 + 引用式生成"的路线。本文关注的核心问题有两个：视觉信息应优先作用于检索阶段还是生成阶段，以及实验结论是否建立在与任务目标一致的评测协议之上。
+
+\subsection{研究目标与研究问题}
+
+本研究旨在构建一个面向课程文档的多模态问答系统，实现复杂页面的结构化解析、块级证据检索、可追溯回答生成与标准化实验评测。围绕这一目标，本文聚焦三个研究问题：
+
+\begin{enumerate}
+    \item 原始 \texttt{DocVQA val first-100} 上的性能平台期，究竟来自模型与检索能力不足，还是来自 benchmark 定义偏差。
+    \item 在当前课程项目的数据规模与系统架构下，视觉信息最有效的接入位置究竟是检索阶段，还是生成阶段。
+    \item 在修复评测协议后，系统剩余错误的主要来源究竟是普通排序噪声，还是 query grounding、OCR 表示与版面理解的更深层缺口。
+\end{enumerate}
+
+围绕这些问题，本文构建了从页面解析、索引构建、证据召回、回答生成到 citation 返回的完整链路，并在实验中逐步将系统主线收敛为"文本优先检索 + 生成阶段视觉辅助 + 与任务一致的评测协议"。
+
+\section{相关工作}
+
+\subsection{多模态文档理解与文档 RAG}
+
+多模态大模型为文档理解提供了新的技术基础。与仅处理线性文本的语言模型相比，视觉语言模型能够同时利用页面图像与文字内容，因此在标题、徽标、页码、表单与局部短文本识别等任务上具有明显优势。但多模态能力并不自动等价于可用的文档检索系统：若直接依赖整页视觉推理，仍然难以稳定解决"先找页、再读块"的证据组织问题。
+
+RAG 通过"外部检索 + 条件生成"缓解了纯生成模型在长文档和外部知识利用上的限制，已经成为文档问答的重要技术路线。传统文本 RAG 检索稳定、成本可控、可解释性较强，但其索引对象通常是线性文本片段，难以显式保留页面结构与局部视觉信息。近年来，多模态 RAG 进一步将视觉路径引入检索与生成，说明文档问答既不能简单退回纯文本方案，也不宜完全依赖整页视觉推理，而应在检索粒度、语义保持与可追溯性之间寻找更稳健的平衡。
+
+\subsection{结构感知切分与本文定位}
+
+除模型能力之外，文档问答中的另一个关键问题在于切分与证据表示。若切分过程不能保留版面结构与阅读顺序，即便检索命中了"相关文本"，也未必命中了"完整证据"。因此，结构感知切分与块级证据表示是连接页面解析、检索重排与 citation 返回的关键中间层。
+
+本文采用"块优先"思路，将页面解析结果视为主索引对象，并保留 \texttt{chunk\_id}、\texttt{page\_no}、\texttt{bbox}、\texttt{source\_ref} 等回溯字段，以支撑后续检索、重排、引用返回与误差分析。与现有工作相比，本文更关注两个工程问题：其一，多模态信息并不一定越早介入越好；其二，若评测协议与真实任务目标不一致，模型比较结论也会发生系统性偏移。基于此，本文将系统主线定位为以文本优先检索为核心、以生成阶段门控视觉辅助为补充，并通过 benchmark 修复保证结论的有效性。
+
+\section{系统设计与实现}
+
+\subsection{总体设计思路}
+
+针对开题报告中提出的"语义丢失"与"长文档检索困难"两类核心问题，本文最终采用"结构化解析 + 块级表示 + 文本优先检索 + 视觉辅助生成"的总体路线。与开题阶段偏重"双路径 RAG + 晚融合"的设想相比，结题阶段最大的变化不在于模块数量的增减，而在于系统内部主次关系的重新排序：文本检索被确立为主证据排序机制，视觉信息则更多承担局部消歧与回答补偿的角色。
+
+系统整体可划分为四个阶段：
+
+\begin{enumerate}
+    \item 数据标准化与页面解析。
+    \item 块级语义对象构建与索引生成。
+    \item 证据召回、重排与组织。
+    \item 回答生成、citation 返回与离线评测。
+\end{enumerate}
+
+这一设计的核心原则是：任何生成结果都应尽量能够回到具体页面与具体块，任何实验结论都应尽量能够回到明确的索引对象与评测协议。
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.86\textwidth]{flowchart.png}
+    \caption{系统整体流程图。该流程覆盖数据标准化、页面解析、块级索引、检索重排、视觉辅助生成与评测闭环。}
+    \label{fig:flowchart}
+\end{figure}
+
+% \begin{figure}[!htbp]
+%     \centering
+%     \includegraphics[width=0.8\textwidth]{D:/MLLMProject/docs/images/流程图.png}
+%     \caption{系统流程图}
+%     \label{fig:flowchart}
+% \end{figure}
+
+\subsection{数据标准化、MinerU 解析与块优先结构}
+
+数据入口由 \texttt{scripts/01\_prepare\_datasets.py}、\texttt{scripts/06\_run\_mineru.py} 与 \texttt{scripts/07\_parse\_and\_chunk.py} 共同构成。前者负责将 DocVQA、ChartQA 等评测集统一标准化为 JSONL；然后将页面图片或 PDF 输入交给 MinerU，得到归一化的页面块；后者负责将解析结果转换为 \texttt{documents.jsonl} 与 \texttt{chunks.jsonl} 两类产物。
+
+其中，\texttt{documents.jsonl} 主要记录文档级与样本级元信息，不直接作为检索对象；真正进入索引的是 \texttt{chunks.jsonl} 中的块级对象。每个块至少保留以下字段：\texttt{chunk\_id}、\texttt{document\_id}、\texttt{block\_id}、\texttt{page\_no}、\texttt{bbox}、\texttt{source\_ref}、\texttt{source\_path}、\texttt{image\_path} 与 \texttt{metadata}。项目在后期放弃将 benchmark 问题文本作为默认检索对象的做法，仅将其保留为早期 smoke test 所需的可选调试机制。这一转变意味着系统从记住问题走向读取页面，从而保证检索对象与真实任务对象保持一致。
+
+为便于明确文档级对象与块级对象的职责边界，本文将两类核心数据结构概括如\autoref{tab:core_objects} 所示。
+
+\begin{table}[H]
+    \centering
+    \scriptsize
+    \caption{核心数据结构说明}
+    \label{tab:core_objects}
+    \begin{tabularx}{\textwidth}{@{}P{0.18\textwidth}P{0.18\textwidth}P{0.50\textwidth}>{\centering\arraybackslash}p{0.08\textwidth}@{}}
+        \toprule
+        \textbf{对象} & \textbf{角色定位} & \textbf{核心字段} & \makecell[c]{\textbf{进入}\\\textbf{索引}} \\
+        \midrule
+        \seqsplit{\texttt{documents.jsonl}} & 文档级父对象 & \texttt{document\_id}, \texttt{dataset}, \texttt{split}, \texttt{source\_type}, \texttt{source\_path}, \texttt{image\_path}, \texttt{page\_no/page\_count}, \texttt{question}, \texttt{answers}, \texttt{metadata} & 否 \\
+        \seqsplit{\texttt{chunks.jsonl}} & 块级证据对象 & \texttt{chunk\_id}, \texttt{document\_id}, \texttt{block\_id}, \texttt{block\_index}, \texttt{part\_index}, \texttt{chunk\_type}, \texttt{text}, \texttt{page\_no}, \texttt{bbox}, \texttt{source\_ref}, \texttt{image\_path}, \texttt{metadata} & 是 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\autoref{tab:core_objects} 表明，本文并不把文档级记录与检索级记录混为一谈。\texttt{documents.jsonl} 负责回答"这是什么文档、来自哪里、对应什么评测样本"，而 \texttt{chunks.jsonl} 负责回答"哪一段证据应进入索引、应如何被召回、以及应如何回溯到原页面区域"。
+
+上述数据构建过程可抽象为算法~\ref{alg:parse}。
+
+% =============================================
+% 修改：算法 1 改用标准 algorithm + algorithmic 环境
+% =============================================
+\begin{algorithm}[H]
+    \caption{文档解析与块级切分流程}
+    \label{alg:parse}
+    \begin{algorithmic}[1]
+        \REQUIRE 原始输入 $x$（PDF、页面图像或标准化评测样本）
+        \ENSURE 文档级记录 $d$，与块级证据集合 $\mathcal{C}$
+        \STATE 若 $x$ 来自公开数据集，则先标准化为统一评测样本格式
+        \STATE 提取 $x$ 对应的页面图像或 PDF 路径
+        \STATE 调用 MinerU 对页面进行结构化解析，得到语义块集合 $\mathcal{B}$
+        \STATE 构建文档级记录 $d$，写入 \texttt{document\_id}、\texttt{source\_path}、\texttt{image\_path}、\texttt{page} 信息与 \texttt{metadata}
+        \STATE 初始化块级集合 $\mathcal{C} \leftarrow \emptyset$
+        \FOR{每个语义块 $b \in \mathcal{B}$}
+            \STATE 规范化块类型、页码、bbox、\texttt{image\_path} 与原始解析字段
+            \STATE 若 $b$ 的文本长度 $\le$ \texttt{max\_chars\_per\_chunk}，则生成一个 chunk $c$
+            \STATE 否则在 $b$ 内部按滑窗切分，生成多个 part，并共享同一 \texttt{block\_id}
+            \STATE 若 $b$ 为 figure/table/formula/page\_image 且文本为空，则补充占位文本
+            \STATE 为每个 $c$ 写入 \texttt{chunk\_id}、\texttt{document\_id}、\texttt{block\_id}、\texttt{page\_no}、\texttt{bbox}、\texttt{source\_ref}、\texttt{metadata}
+            \STATE 将 $c$ 加入 $\mathcal{C}$
+        \ENDFOR
+        \STATE \textbf{return} $d$ 与 $\mathcal{C}$
+    \end{algorithmic}
+\end{algorithm}
+
+\subsection{索引构建与文本优先检索主线}
+
+\texttt{scripts/08\_build\_indexes.py} 负责基于块级对象构建本地轻量索引。当前主线索引主要包含三类对象：一是以 \texttt{doc\_store.json}、\texttt{postings.json}等为核心的稀疏文本索引；二是 \texttt{visual\_store.json} 形式的视觉元数据索引；三是部分实验中使用的视觉描述符存储与向量文件。
+
+核心检索逻辑位于 \texttt{src/models/retrieval.py}。从机制上看，系统采用"两阶段检索"思路：第一阶段先用轻量的文本相似度方法，从全部块级证据中快速筛出一小批候选；第二阶段再对这些候选进行更细致的重排判断。这样设计的原因在于，文档问答并不只是"找词最像的文本"，而是要在大量页面块中找出"最可能真正回答当前问题的证据块"。
+
+在重排阶段，系统不再把所有问题都当作同一类文本匹配任务处理，而是显式区分不同题型对证据形态的依赖差异。对于标题、页眉、徽标、页码等问题，系统会更偏好短标题块、页面顶部块或具有明显版面标记的块；对于表格与图表问题，系统会更重视包含结构化数值信息的文本块；对于明显缺乏信息量的通用占位块、噪声块或与问题仅存在表面重合的块，则给予额外惩罚。换言之，系统试图学习的不是"哪段话和问题最像"，而是"哪类证据在当前题型下最有可能是正确证据"。
+
+后期优化中的一个关键改动，是在更强检索配置下，先削弱问题中低信息词对初筛结果的影响，再进行候选排序。这样做的背景是：我们在误差分析中发现，一些由调试机制生成的 synthetic chunk 会重复题干表述，因此很容易仅凭表面词汇重叠获得较高分数，进而压制真正来自页面内容的证据块。通过降低这类低信息词和题干回声的支配作用，系统能够把注意力更多放在实体词、结构词和页面内容本身上。其结果并不是简单地"多加几条规则"，而是让检索过程更接近文档问答任务真正关心的目标，即从原始页面中定位可信、可回溯且与当前问题语义对应的证据。
+
+对应的主检索流程可概括为算法~\ref{alg:retrieve}。
+
+% =============================================
+% 修改：算法 2 改用标准 algorithm + algorithmic 环境
+% =============================================
+\begin{algorithm}[!htbp]
+    \caption{文本优先检索与重排流程}
+    \label{alg:retrieve}
+    \begin{algorithmic}[1]
+        \REQUIRE 用户问题 $q$，索引语料 $\mathcal{I}$，返回条数 $k$
+        \ENSURE 排序后的证据列表 $\mathcal{E}$
+        \STATE 对 $q$ 进行分词，得到 query tokens
+        \STATE 若 \texttt{rerank\_profile} = stronger，则过滤低信息 stopwords
+        \STATE 基于稀疏表示在 $\mathcal{I}$ 中计算 chunk 级初始相似度分数
+        \STATE 选取前 $N$ 个候选块构成候选池 $\mathcal{P}$
+        \FOR{每个候选块 $p \in \mathcal{P}$}
+            \STATE 判断 $q$ 是否属于 title / heading / logo / page number / table / chart 等题型
+            \STATE 对短标题块、页码样式块、结构化表格文本给予奖励
+            \STATE 对低信息噪声块、通用占位块或错误词面回声块给予惩罚
+            \STATE 若启用 query-image-aware rerank，则对 deictic/layout 问题追加页面级辅助重排
+        \ENDFOR
+        \STATE 合并基础分数与重排增益，得到最终分数
+        \STATE 按最终分数降序排序，并截取 top-$k$ 结果
+        \STATE \textbf{return} $\mathcal{E}$
+    \end{algorithmic}
+\end{algorithm}
+
+\subsection{服务接口、证据组织与引用返回}
+
+\texttt{src/serving/api.py} 提供完整的后端服务闭环。系统通过 \texttt{/api/v1/chat} 接收 query、上下文与可选图片输入，调用 \texttt{LocalTextRetriever} 召回证据块，再将证据组织为生成提示词，最后由视觉语言模型生成回答并返回 citation。citation 至少包含 \texttt{chunk\_id}、\texttt{source}、\texttt{page}、\texttt{snippet} 等字段，并通过 \texttt{source\_ref} 保留到原始页面与区域的回溯路径。
+
+\subsection{从检索期视觉融合到生成期门控视觉辅助}
+
+项目关于视觉路径的实现经历了明显演化。早期思路倾向于在检索阶段直接进行视觉稠密融合，希望利用页面图像的全局相似性提升召回质量；相应地，\texttt{benchmark.py} 中也实现了视觉融合与 query-image-aware rerank 等实验路径。然而，后续实验表明，在页面布局相近、标题模板重复、通用视觉元素较多的课程文档场景中，视觉描述符容易把"看起来相似"但证据并不正确的页面推到更前位置。
+
+基于这一观察，项目后期将视觉信息更多转移到生成阶段使用，实现了门控视觉辅助策略：仅在 \texttt{logo}、\texttt{pack text}、\texttt{heading}、\texttt{title}、\texttt{page number} 与短手写文本等题型上启用视觉辅助；对于 \texttt{chart}、\texttt{table}、一般数字题与抽象语义题则禁用该机制。该策略保留了视觉信息对局部短文本辨识的价值，同时避免其在不适合的题型上扰动文本证据主线。
+
+门控视觉辅助的触发逻辑如算法~\ref{alg:gate} 所示。
+
+% =============================================
+% 修改：算法 3 改用标准 algorithm + algorithmic 环境
+% =============================================
+\begin{algorithm}[!htbp]
+    \caption{门控视觉辅助触发逻辑}
+    \label{alg:gate}
+    \begin{algorithmic}[1]
+        \REQUIRE 用户问题 $q$，顶部证据列表 $\mathcal{E}$，视觉辅助策略 $policy$
+        \ENSURE 是否启用视觉辅助的布尔值 $flag$
+        \STATE 对 $policy$ 做归一化
+        \STATE 若 $policy = \text{off}$，则返回 False
+        \STATE 若 $policy = \text{always}$，则返回 True
+        \STATE 对 $q$ 做小写化与题型词检测
+        \STATE 定义启用标记：logo / brand / pack text / heading / title / page number / handwritten
+        \STATE 定义禁用标记：chart / table / axis / amount / value / summary / abstract 等
+        \STATE 若 $q$ 命中禁用标记，则返回 False
+        \STATE 若 $q$ 命中启用标记，则返回 True
+        \STATE 若 $q$ 较短，且顶部证据中存在 page\_image 或 figure 类型证据，则返回 True
+        \STATE 否则返回 False
+    \end{algorithmic}
+\end{algorithm}
+
+\section{实验设计}
+
+\subsection{数据集与评测对象}
+
+本文主要围绕 DocVQA 进行系统性实验，并辅以 ChartQA 的流程验证。
+
+其中，历史基准使用 \texttt{DocVQA val first-100}；后期主基准使用 \texttt{unique-docpage-100}。后者通过 \texttt{scripts/15\_build\_unique\_docpage\_benchmark.py} 从预处理后的DocVQA验证数据集出发，按 \texttt{(ucsf\_document\_id, ucsf\_document\_page\_no)} 分组，保留每个文档页一个代表性问题，并结合 question type 做分层抽样，最终得到固定的 100 页 manifest。同步重建了 \texttt{documents}、\texttt{chunks} 与 \texttt{indexes}，从而形成与 manifest 严格对齐的 rebuilt corpus。
+
+\subsection{指标体系}
+
+本文采用的指标体系包括三类：
+
+\begin{enumerate}
+    \item \textbf{检索指标：\texttt{Hit@5} 与 \texttt{Precision@5}}。其中，\texttt{Hit@5} 表示在系统返回的前 5 个证据块中，是否至少出现了一个与标准答案对应的正确证据；该指标主要衡量系统能否把正确页面或正确证据召回到候选集合中。\texttt{Precision@5} 表示前 5 个返回结果中相关证据所占的比例；该指标不仅关心"有没有找对"，也关心"候选列表中有多少噪声"，因此更能反映检索排序的纯度。
+    \item \textbf{引用指标：\texttt{Citation@1}}。该指标考察系统返回的第 1 条 citation 是否指向正确证据来源。在本文场景下，它比一般召回指标更严格，因为它直接对应用户最终最先看到的证据是否可信，因而可以近似衡量系统的 top-1 证据定位能力。
+    \item \textbf{回答指标：\texttt{Exact Match}、\texttt{ANLS}、\texttt{Token-F1}}，以及部分分析中使用的 \texttt{Answer-Contains}。其中，\texttt{Exact Match} 要求模型输出与标准答案在归一化后完全一致，适合衡量答案是否"严格答对"；\texttt{ANLS}（Approximate Normalized Levenshtein Similarity）允许小幅字符差异，尤其适合 OCR 噪声、大小写差异或轻微拼写偏差较常见的文档问答场景；\texttt{Token-F1} 从词项重合角度综合考虑准确率与召回率，能够反映预测答案与标准答案在内容层面的整体接近程度；\texttt{Answer-Contains} 则用于补充分析，主要判断系统回答中是否至少包含标准答案的关键信息，适合观察回答虽然不完全规范、但是否已经抓住核心内容。
+\end{enumerate}
+
+此外，\texttt{src/evaluation/benchmark.py} 中同时保留了 sample-level 与 doc-page-level 两种相关性判定逻辑。前者强调是否命中完全一致的样本来源，后者强调是否命中同一原始文档页。
+
+\subsection{对比实验设置}
+
+为分析系统演化中的真实收益，本文重点比较以下代表性实验线：
+
+\begin{enumerate}
+    \item \texttt{promptfix\_v3}：旧 benchmark 上较稳定的文本基线。
+    \item \texttt{exp5\_densefusion\_w045}：旧 benchmark 上表现最好的视觉稠密融合线。
+    \item \texttt{stronger\_rebuilt}：修复 benchmark 后的文本优先重排主线。
+    \item \texttt{stronger\_qia\_v6}：加入 query-image-aware rerank 后的当前最佳检索线。
+    \item \texttt{stronger\_qia\_base}：修复 benchmark 后的 clean grounding-first RAG 基线。
+    \item \texttt{stronger\_qia\_visualassist\_gated\_v2}：当前最佳端到端主线。
+\end{enumerate}
+
+\section{实验诊断与策略调整}
+
+本章仅保留影响后续结果解释的两个关键诊断，其余细节放入结果分析中统一讨论，以避免重复叙述。
+
+\subsection{评测协议修复与 rebuilt corpus}
+
+误差分析表明，原始 \texttt{DocVQA val first-100} 虽包含 100 个 QA 样本，但只对应 29 个唯一文档页。许多 sample 共享同一原始页面，使 sample-level 指标难以区分"没有找到正确页面"与"找到了同页但不是当前副本"。为此，项目构建了 \texttt{unique-docpage-100} 固定评测清单，并同步重建与其对齐的 \texttt{documents}、\texttt{chunks} 与 \texttt{indexes}，从而保证评测对象、索引对象与证据定义保持一致。
+
+\subsection{从检索期视觉融合到生成期视觉辅助}
+
+在修复 benchmark 后，项目发现两个结论逐步稳定下来。其一，\texttt{fallback\_text} 这类问题回声块会劫持 top-1 排序，因此检索主线的首要改进应是强化文本优先重排，压制低信息词与模板复述。其二，视觉稠密融合并未在检索阶段带来稳定收益，反而更适合在生成阶段作为局部视觉补偿模块使用。基于这一认识，系统最终收敛为以文本优先检索为主线、以门控视觉辅助为补充的结构，后文将围绕这一主线给出结果分析。
+
+\section{实验结果与分析}
+
+本节围绕各个模块带来的收益与负面效果进行组织。第一，benchmark 修复首先校正了系统比较的基础；第二，修复后的主要检索增益来自文本优先排序，而非更早的多模态融合；第三，视觉信息更适合作为生成阶段的局部补偿，而不是检索阶段的默认主线。
+
+\subsection{评测基准修复}
+
+在原始 \texttt{DocVQA val first-100} 上，旧文本基线与旧视觉稠密融合线的差距很小，如\autoref{tab:old_benchmark_compact} 所示。
+
+\begin{table}[!htbp]
+    \centering
+    \scriptsize
+    \caption{原始基准上的历史结果}
+    \label{tab:old_benchmark_compact}
+    \begin{tabularx}{\textwidth}{@{}P{0.24\textwidth}P{0.18\textwidth}*{4}{>{\centering\arraybackslash}p{0.11\textwidth}}@{}}
+        \toprule
+        \textbf{line} & \textbf{setting} & \textbf{Hit@5} & \makecell[c]{\textbf{Precision}\\\textbf{@5}} & \makecell[c]{\textbf{Citation}\\\textbf{@1}} & \textbf{EM} \\
+        \midrule
+        \seqsplit{\texttt{promptfix\_v3}} & retrieval & 0.49 & 0.114 & 0.12 & -- \\
+        \seqsplit{\texttt{exp5\_densefusion\_w045}} & retrieval & 0.51 & 0.118 & 0.13 & -- \\
+        \seqsplit{\texttt{promptfix\_v3}} & rag & 0.49 & 0.114 & 0.12 & 0.78 \\
+        \seqsplit{\texttt{exp5\_densefusion\_w045}} & rag & 0.51 & 0.118 & 0.13 & 0.77 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+这些数字容易给人留下"更强视觉融合略优"的印象。然而这一比较并不可靠，因为旧基准混入了大量重复页，sample-level 打分无法真实反映系统是否已经找到正确文档页。因此，这一阶段结果的主要价值不是比较方法优劣，而是暴露评测协议本身存在偏差。
+
+在修复为 \texttt{unique-docpage-100} 并重建对应索引语料之后，检索结果发生了结构性变化，如\autoref{tab:fixed_benchmark} 所示。
+
+\begin{table}[!htbp]
+    \centering
+    \scriptsize
+    \caption{修复基准后的检索结果}
+    \label{tab:fixed_benchmark}
+    \begin{tabularx}{\textwidth}{@{}P{0.25\textwidth}P{0.39\textwidth}*{3}{>{\centering\arraybackslash}p{0.10\textwidth}}@{}}
+        \toprule
+        \textbf{line} & \textbf{概述} & \textbf{Hit@5} & \makecell[c]{\textbf{Precision}\\\textbf{@5}} & \makecell[c]{\textbf{Citation}\\\textbf{@1}} \\
+        \midrule
+        \seqsplit{\texttt{stronger\_rebuilt}} & 修复基准后的文本优先主线 & 0.93 & 0.19 & 0.89 \\
+        \seqsplit{\texttt{stronger\_qia\_v6}} & 加入图像感知重排的检索主线 & 0.95 & 0.196 & 0.91 \\
+        \seqsplit{\texttt{exp5\_rebuilt}} & 修复基准后的视觉融合线 & 0.93 & 0.19 & 0.88 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+基准修复后，文本优先主线反而优于此前看似更有前景的视觉稠密融合线。因此，后文关于各模块贡献的讨论均以修复后的 \texttt{unique-docpage-100} 为准。这里最重要的结论是：benchmark 修复首先改变的是"系统被如何测量"，然后才谈得上"系统被如何比较"。
+
+\subsection{文本优先排序}
+
+在统一基准上，页级文本、块级文本与块级多模态索引的表现几乎一致，说明当前性能提升并不是靠改变索引颗粒度或索引表示获得的，而主要取决于检索排序本身是否能够把正确证据放到前列。
+
+进一步看检索增强链路的消融，如\autoref{tab:retrieval_ablation} 所示。
+
+
+\begin{table}[!htbp]
+    \centering
+    \scriptsize
+    \caption{检索增强链路消融实验}
+    \label{tab:retrieval_ablation}
+    \begin{tabularx}{\textwidth}{@{}P{0.24\textwidth}P{0.33\textwidth}*{3}{>{\centering\arraybackslash}p{0.13\textwidth}}@{}}
+        \toprule
+        \textbf{retrieval line} & \textbf{概述} & \textbf{Hit@5} & \makecell[c]{\textbf{Citation}\\\textbf{@1}} & \makecell[c]{\textbf{DocPage}\\\textbf{Hit@5}} \\
+        \midrule
+        \seqsplit{\texttt{basic}} & 基础文本检索 & 0.93 & 0.89 & 0.93 \\
+        \seqsplit{\texttt{stronger}} & 强化文本重排 & 0.95 & 0.90 & 0.95 \\
+        \seqsplit{\texttt{stronger + qta}} & 强化文本重排加题型感知重排 & 0.95 & 0.90 & 0.95 \\
+        \seqsplit{\texttt{stronger + qia}} & 强化文本重排加图像感知重排 & 0.95 & 0.91 & 0.95 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+从这组结果可以把不同模块的作用拆开来看。\texttt{basic -> stronger} 是检索链路中最主要的一步提升：\texttt{Hit@5} 从 \texttt{0.93} 提高到 \texttt{0.95}，\texttt{Citation@1} 从 \texttt{0.89} 提高到 \texttt{0.90}。这一提升主要来自更稳健的文本优先排序，包括削弱低信息词干扰、抑制问题回声块、以及改进候选重排逻辑，把排序对象重新拉回到"真实页面证据"。
+
+相比之下，\texttt{query-type-aware rerank} 在当前子集上的额外增益较小，说明题型启发式在这一固定样本集上更多扮演"稳定器"而不是"主要增长点"。而 \texttt{query-image-aware rerank} 虽未继续提高 \texttt{Hit@5}，却把 \texttt{Citation@1} 从 \texttt{0.90} 推高到 \texttt{0.91}，说明它更主要地改善了 top-1 证据排序，而不是扩大候选召回范围。也就是说，检索链路中的核心增益来自文本优先主线本身，后续视觉感知重排只提供了相对有限但方向明确的补充。
+
+\subsection{视觉信息前置到检索阶段}
+
+为了检验"更强多模态检索"是否真的优于文本优先主线，本文进一步比较了文本优先主线与 retrieval-time dense fusion，如\autoref{tab:retrieval_visual} 所示。
+
+\begin{table}[!htbp]
+    \centering
+    \scriptsize
+    \caption{检索阶段视觉融合对比}
+    \label{tab:retrieval_visual}
+    \begin{tabularx}{\textwidth}{@{}P{0.24\textwidth}P{0.33\textwidth}*{3}{>{\centering\arraybackslash}p{0.13\textwidth}}@{}}
+        \toprule
+        \textbf{line} & \textbf{概述} & \textbf{Hit@5} & \makecell[c]{\textbf{Citation}\\\textbf{@1}} & \makecell[c]{\textbf{DocPage}\\\textbf{Hit@5}} \\
+        \midrule
+        \seqsplit{\texttt{stronger + qia}} & 文本优先加图像感知重排主线 & 0.95 & 0.91 & 0.95 \\
+        \seqsplit{\texttt{visual\_densefusion}} & 检索阶段视觉稠密融合 & 0.95 & 0.79 & 0.95 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+这是一组非常关键的负结果。视觉稠密融合并没有降低页级召回，\texttt{Hit@5} 仍保持 \texttt{0.95}；但它显著破坏了 top-1 证据排序，使 \texttt{Citation@1} 从 \texttt{0.91} 下降到 \texttt{0.79}。这说明视觉信息在当前课程文档场景下并非"越早介入越好"。对于布局近似、模板重复、视觉元素高度相似的页面，视觉描述符更容易把"相似页"排到前面，而不一定把真正含有答案的证据页排到前面。
+
+因此，视觉模块在检索阶段带来的并不是稳定增益，而是一个明确的风险：它可能保住了"找对页"的能力，却损害了"把最正确的证据放在第一位"的能力。对以 citation 为核心的文档问答系统而言，这种负面效果比单纯召回下降更值得警惕。
+
+\subsection{视觉信息放到生成阶段后}
+
+在确认视觉稠密融合不适合作为检索主线后，项目将视觉信息转移到生成阶段，并区分两种评测口径。第一种是 \texttt{Corpus-grounded RAG}：模型不能直接看题图，必须依赖语料库中的页面证据作答；第二种是 \texttt{Query-image assisted QA}：允许模型直接观察 query page image，用于估计视觉识别上限。前者支撑主结论，后者仅作补充诊断。
+
+先看 \texttt{Corpus-grounded RAG}。如\autoref{tab:gate_policies} 所示，各条实验线的 \texttt{Hit@5} 与 \texttt{Citation@1} 基本保持不变，因此差异主要来自生成阶段是否成功利用视觉证据。\texttt{cg\_text\_only} 只有 \texttt{EM=0.13}，而 \texttt{cg\_visualassist\_always} 提升到 \texttt{EM=0.82}、\texttt{ANLS=0.834982}、\texttt{Token-F1=0.839753}，说明视觉辅助对局部短文本、标题、页码和手写短语等问题具有决定性价值。
+
+但这组结果也同时暴露出当前门控策略的不足。\texttt{cg\_visualassist\_gated} 虽优于 \texttt{cg\_text\_only}，却仅达到 \texttt{EM=0.20}，与 \texttt{always} 之间仍有巨大差距。这意味着问题不在于"视觉有没有用"，而在于"现有 gate 过于保守，没有把视觉能力在该用的时候及时调动起来"。
+
+为进一步验证这一判断，\autoref{tab:gate_policies} 对不同 gate 版本进行了细拆。
+
+\begin{table}[!htbp]
+    \centering
+    \scriptsize
+    \caption{不同门控策略的对比}
+    \label{tab:gate_policies}
+    \begin{tabularx}{\textwidth}{@{}P{0.24\textwidth}P{0.23\textwidth}*{5}{>{\centering\arraybackslash}p{0.085\textwidth}}@{}}
+        \toprule
+        \textbf{gate policy} & \textbf{概述} & \textbf{Hit@5} & \makecell[c]{\textbf{Citation}\\\textbf{@1}} & \textbf{EM} & \textbf{ANLS} & \makecell[c]{\textbf{Token-}\\\textbf{F1}} \\
+        \midrule
+        \seqsplit{\texttt{cg\_text\_only}} & 仅用语料文本证据作答 & 0.95 & 0.90 & 0.13 & 0.13 & 0.147952 \\
+        \seqsplit{\texttt{cg\_logo\_only}} & 仅在徽标题触发视觉辅助 & 0.95 & 0.90 & 0.16 & 0.16 & 0.176928 \\
+        \seqsplit{\texttt{cg\_title\_page\_only}} & 仅在标题与页码题触发视觉辅助 & 0.95 & 0.90 & 0.18 & 0.195627 & 0.206292 \\
+        \seqsplit{\texttt{cg\_handwritten\_only}} & 仅在手写题触发视觉辅助 & 0.95 & 0.90 & 0.14 & 0.14 & 0.157448 \\
+        \seqsplit{\texttt{cg\_visualassist\_gated}} & 统一门控视觉辅助 & 0.95 & 0.90 & 0.20 & 0.20 & 0.216080 \\
+        \seqsplit{\texttt{cg\_visualassist\_always}} & 始终启用视觉辅助 & 0.95 & 0.90 & 0.82 & 0.834982 & 0.839753 \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+可以看到，无论是单独题型门控，还是统一启发式门控，都只带来了有限提升；真正的大幅改善来自 \texttt{always}。因此，生成阶段视觉辅助本身是有效模块，但当前"是否触发"的策略仍是系统最薄弱的部分。换言之，视觉模块的正贡献已经被实验充分证明，真正限制其收益释放的，是 gate 设计，而不是视觉信息本身。
+
+\subsection{模型的视觉能力不是主要瓶颈}
+
+作为补充，在 \texttt{Query-image assisted QA} 设定下，各种配置几乎都稳定在 \texttt{EM≈0.93}、\texttt{ANLS≈0.946}。这说明模型本身并不缺少基本视觉识别能力，系统真正的瓶颈在于 corpus-grounded 条件下如何把视觉能力与语料库证据稳定连接起来。换言之，问题主要出在视觉证据的触发与组织，而不是模型"看不懂图"。
+
+%\begin{figure}[!htbp]
+%    \centering
+%    \includegraphics[width=0.8\textwidth]{D:/MLLMProject/outputs/eval/final_assets/fig_grounding_vs_quality_tradeoff.svg}
+%    \caption{Grounding 与回答质量的整体权衡}
+%    \label{fig:grounding_vs_quality}
+%\end{figure}
+
+\begin{figure}[!htbp]
+    \centering
+    \includegraphics[width=0.76\textwidth]{fig_grounding_vs_quality_tradeoff.pdf}
+    \caption{Grounding 与回答质量的整体权衡。}
+    \label{fig:grounding_vs_quality}
+\end{figure}
+
+\autoref{fig:grounding_vs_quality} 汇总了历史 mixed setting、\texttt{Corpus-grounded RAG} 与 \texttt{Query-image assisted QA} 三种口径下的代表性实验点。可以看到，\texttt{qiaqa\_*} 点虽然回答质量较高，但 grounding 指标为零；而 \texttt{cg\_*} 点则体现了"证据可追溯"与"回答质量"之间的真实工程张力。
+
+\subsection{本章小结：各模块的真实贡献与代价}
+
+综合本章结果，可以将各模块作用概括为四点：
+
+\begin{enumerate}
+    \item 评测基准修复带来的不是普通参数提升，而是对系统真实能力的重新测量；它决定了后续结论是否可信。
+    \item 检索链路中，最主要的正向贡献来自更稳健的文本优先排序；题型感知和 query-image-aware 重排只提供了有限但有方向性的补充。
+    \item 视觉信息若前置到检索阶段，会明显损害 top-1 citation 排序，因此不适合作为当前系统的默认主线。
+    \item 视觉信息若后置到生成阶段，则能显著提升回答质量；但当前门控策略过于保守，尚未充分释放这一模块的真实收益。
+\end{enumerate}
+
+\section{讨论}
+
+\subsection{相比开题设想的真实变化}
+
+开题报告中的系统设想更接近"结构化切分 + 双路径 RAG + 晚融合"的典型多模态方案。结题阶段表面上仍保留了这一框架，但其内部逻辑已经发生重要变化：系统不再默认认为"多模态越早介入越好"，而是通过实验逐步建立了更细化的角色分配，即文本路径负责主证据排序，视觉路径负责局部识别补偿，benchmark 修复负责保障实验可解释性。
+
+这种变化说明，项目的成熟并不只体现在功能变多或分数升高，更体现在系统主次关系的认识更加清晰。相比"证明某个模块有用"，本文更重要的贡献在于澄清"该模块在什么条件下、以什么方式有用"。
+
+\subsection{本项目最值得保留的研究经验}
+
+从研究方法角度看，本项目最值得保留的经验主要有三点。
+
+第一，benchmark 并不是中性的。若评测对象与真实任务目标不一致，分数既可能夸大问题，也可能掩盖真实进步。第二，多模态信息不是天然正增益。其有效性取决于介入时机、题型条件与系统中的证据角色。第三，工程闭环与科学诊断同等重要。只有当 schema、API、citation、评测脚本与误差分析被统一到同一框架内，实验现象才真正具备可解释性。
+
+如果进一步概括，这三条经验实际上共同指向一个更一般的研究原则：对于工程型多模态系统，真正高质量的结题工作不应仅展示"做成了什么"，更应解释"为何这样做、为何此前的做法不够好、以及结论为何值得相信"。
+
+\section{局限性与后续工作}
+
+尽管当前系统已形成较完整的离线评测闭环，但仍存在以下局限。
+
+\begin{enumerate}
+    \item 当前主要结论建立在 DocVQA 风格数据上，\texttt{unique-docpage-100} 虽比旧基准更合理，但仍属于固定切片，外部泛化能力仍需在更多文档域上验证。
+    \item 当前检索优化仍包含较强启发式成分，虽然在课程项目中有效，但未必能无缝推广到更大规模开放域语料。
+    \item 当前 benchmark 主要衡量页级检索与页级 grounding，而非更细粒度的区域级定位；页面正确不等于区域必然正确。
+    \item 在线文件上传、增量解析、实时建索引与长期 workspace 管理尚未成为正式实验对象，系统当前更接近研究原型而非完整产品。
+\end{enumerate}
+
+据此，后续工作可沿三条路线展开：
+
+\begin{enumerate}
+    \item 推进在线文档接入与增量索引，使系统从离线 benchmark 原型进一步走向真实交互应用。
+    \item 在现有 query-aware rerank 的基础上引入更学习化的页级或区域级 reranker，提升 generic/deictic query 的 grounding 能力。
+    \item 结合不确定性估计进一步细化视觉辅助门控策略，仅在模型对局部视觉短文本存在明显识别困难时触发视觉补偿。
+\end{enumerate}
+
+\section{结论}
+
+本文围绕课程文档场景下的多模态问答任务，完成了一套以块优先结构、可追溯引用与 benchmark 驱动诊断为核心的多模态 RAG 系统实现与实验分析。与开题阶段相比，结题阶段最重要的进展并不只是"做出了一个能运行的系统"，而是通过一系列失败分析、评测修复与实现重构，澄清了系统中真正的主要矛盾。
+
+研究结果表明，原始 \texttt{DocVQA val first-100} 上看似持久的性能平台期，在很大程度上来自 benchmark 的重复页污染；在构造 \texttt{unique-docpage-100} 并重建对应索引语料后，文本优先检索能力得到了更真实的反映。同时，视觉信息虽然对页面理解不可或缺，但其最有效的系统角色并不是默认前置到检索排序，而是在文本证据已经稳定的前提下，以题型敏感的方式辅助生成模型完成局部视觉辨识。
+
+因此，本文最终给出的判断：对于课程规模的多模态文档问答系统，评测对象与索引对象的一致性、文本优先的稳定检索主线，以及题型敏感的门控视觉辅助机制，比简单堆叠更多多模态融合模块，更能带来可信、可解释且可复现的系统提升。
+
+% =============================================
+% Part 5： 参考文献
+% =============================================
+\newpage
+\nocite{*} 
+\bibliographystyle{ieeetr}
+\bibliography{reference}
+
+
+\end{document}
