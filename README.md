@@ -1,174 +1,309 @@
-# Multimodal Doc RAG
+# MLLMProject
 
-A minimal but extensible project skeleton for multimodal document QA.
+多模态文档 RAG 项目，支持：
 
-## What is implemented now
+- 文档解析与索引构建：PDF、图片、Markdown、文本等
+- 检索增强问答：文本检索、视觉辅助、工作区问答
+- DocVQA 基准评测与消融实验
+- Web 端演示：统一由 FastAPI 提供 API 与前端页面
 
-- Repo bootstrap and data directory conventions.
-- Backend API with stable contracts for multi-frontend compatibility.
-- Model invocation wrappers:
-  - VLM chat interface (Qwen-VL via OpenAI-compatible API)
-  - Text embedding interface
-  - Vision embedding interface
-- Demo frontend (Streamlit) that only consumes HTTP API.
+## 1. 项目环境
 
-## Directory conventions
+- 操作系统：Windows 为主，脚本已按 PowerShell 使用方式组织
+- Python：`>=3.10`
+- 依赖安装方式：推荐使用项目内虚拟环境 `.venv`
+- 外部模型服务：需准备兼容 OpenAI API 的
+  - VLM 服务
+  - 文本向量服务
+  - 视觉向量服务
 
-- Raw docs: `data/raw/pdf`, `data/raw/ppt`
-- Parsed/chunked intermediates: `data/interim/*`
-- Benchmark data: `data/processed/*`
-- Runtime outputs: `outputs/*`
+## 2. 目录结构
 
-## Backend API contract
+```text
+MLLMProject/
+├─ configs/                 # 数据集、评测、检索配置
+├─ data/                    # 原始数据、处理中间产物、工作区数据
+├─ docs/                    # 报告、说明文档、论文相关材料
+├─ outputs/                 # 评测结果、表格、图表、实验输出
+├─ scripts/                 # 数据准备、索引构建、评测、消融脚本
+├─ src/
+│  ├─ evaluation/           # 基准评测与指标计算
+│  ├─ models/               # 模型客户端、检索器
+│  ├─ serving/              # FastAPI 服务、工作区检索与问答逻辑
+│  ├─ ui/                   # Web 前端静态资源
+│  ├─ utils/                # 配置与通用工具
+│  └─ cli.py                # 统一启动入口
+├─ test_raw_file/           # 本地工作区演示测试文件
+├─ tests/                   # 测试代码
+├─ requirements.txt         # 运行依赖
+├─ pyproject.toml           # 项目元数据与入口脚本
+└─ README.md
+```
 
-Base URL: `http://127.0.0.1:8000`
+## 3. 首次部署流程
 
-- `GET /health`
-- `POST /api/v1/chat`
-  - request:
-    - `query: string`
-    - `context: string[]` (optional fallback/debug context)
-    - `temperature: float | null`
-    - `max_tokens: int | null`
-  - response:
-    - `answer: string`
-    - `citations: [{chunk_id, source, page, snippet, source_ref?}]`
-    - `model: string`
-- `POST /api/v1/embed/text`
-  - request: `inputs: string[]`
-  - response: `model, vectors`
-- `POST /api/v1/embed/vision`
-  - request: `inputs: string[]`
-  - response: `model, vectors`
+### 3.1 创建虚拟环境
 
-This contract is frontend-agnostic and can be consumed by React/Vue/Next.js/mobile clients.
-
-## Quick start
-
-1. Create and activate virtual env:
-```bash
+```powershell
 python -m venv .venv
-# Windows PowerShell
 .\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
 ```
 
-2. Install package in editable mode:
-```bash
-pip install -e .
-```
+### 3.2 配置模型服务
 
-3. Optional env vars (`.env`):
+在项目根目录创建或修改 `.env`，至少配置以下变量：
+
 ```env
-OPENAI_API_KEY=your_key
-VLM_BASE_URL=http://localhost:8001/v1
+OPENAI_API_KEY=your_api_key
+
+VLM_BASE_URL=http://your_vlm_endpoint/v1
+TEXT_EMB_BASE_URL=http://your_text_embedding_endpoint/v1
+VISION_EMB_BASE_URL=http://your_vision_embedding_endpoint/v1
+
+VLM_MODEL=your_vlm_model
+TEXT_EMB_MODEL=your_text_embedding_model
+VISION_EMB_MODEL=your_vision_embedding_model
 ```
 
-4. Run backend (recommended):
-```bash
-python -m src api
+常用说明：
+
+- `OPENAI_API_KEY`：统一给 OpenAI-compatible 接口使用
+- `VLM_*`：回答生成模型
+- `TEXT_EMB_*`：文本检索向量模型
+- `VISION_EMB_*`：视觉向量模型
+
+可先用下面命令检查模型连通性：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\04_check_model_connectivity.py --project-root .
 ```
 
-5. Run demo frontend:
-```bash
-python -m src ui
+### 3.3 下载 MinerU 模型
+
+如果需要解析 PDF / 图片文档，先准备 MinerU 模型：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\00_download_mineru_models.py
 ```
 
-Optional short command after editable install:
-```bash
-mmrag api
-mmrag ui
+## 4. 项目运行流程
+
+### 4.1 启动后端与前端
+
+当前前端已经直接挂载在 FastAPI 应用中，因此只需启动一个服务：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\05_launch_api.py
 ```
 
-## Local smoke test for retrieval
+或者：
 
-Build mock retrieval chunks and vectors from local project docs:
-```bash
-.\.venv\Scripts\python.exe scripts/07_build_mock_retrieval_data.py
+```powershell
+.\.venv\Scripts\python.exe -m src api
 ```
 
-Run retrieval + chat smoke validation:
-```bash
-.\.venv\Scripts\python.exe scripts/08_smoke_test_text_retrieval.py
+默认地址：
+
+- API：`http://127.0.0.1:8000/api/v1`
+- Web UI：`http://127.0.0.1:8000`
+
+### 4.2 健康检查
+
+浏览器或命令行访问：
+
+```text
+http://127.0.0.1:8000/health
 ```
 
-## Notes
+### 4.3 工作区演示使用方式
 
-- Current model clients assume OpenAI-compatible server endpoints.
-- You can add new providers by extending `src/models/clients.py` without changing API schemas.
+1. 打开 Web UI
+2. 上传 PDF、图片、Markdown 等文件到工作区
+3. 等待工作区完成解析、切块和索引
+4. 在 Query 页面提问
 
-## Dataset preparation
+适合的工作区问题示例：
 
-1. Configure download manifest:
-- `configs/dataset_downloads.yaml`
+- `请只根据文件 C9 - ABE 属性基加密.md 回答：Boneh-Franklin IBE 方案的核心流程是什么？并在答案中标出引用。`
+- `请只根据文件 2-ClassicCrypto.pdf 回答：page 3 在讲什么？并在答案中标出引用。`
+- `请只根据文件 C5 - DigitalSignature 数字签名.md 回答：密码学 Hash 的核心安全性质有哪些？并在答案中标出引用。`
 
-2. Download datasets by script:
-```bash
-python scripts/01_download_datasets.py
+## 5. 数据集处理流程
+
+### 5.1 下载数据集
+
+```powershell
+.\.venv\Scripts\python.exe scripts\01_download_datasets.py --project-root .
 ```
 
-Or download directly from Hugging Face datasets:
-```bash
-python scripts/01_download_datasets.py --from-hf
+### 5.2 规范化数据集
+
+```powershell
+.\.venv\Scripts\python.exe scripts\01_prepare_datasets.py --project-root .
 ```
 
-Keep official HF directory layout + export project raw files:
-```bash
-python scripts/01_download_datasets.py --from-hf --hf-official-layout
+### 5.3 检查数据健康状态
+
+```powershell
+.\.venv\Scripts\python.exe scripts\02_check_dataset_health.py --project-root .
 ```
 
-3. Validate and normalize:
-```bash
-python scripts/01_prepare_datasets.py validate --mode eval
-python scripts/01_prepare_datasets.py prepare --mode eval
+### 5.4 运行 MinerU 解析
+
+```powershell
+.\.venv\Scripts\python.exe scripts\06_run_mineru.py --project-root . --datasets docvqa --splits val
 ```
 
-See [docs/dataset_prep.md](docs/dataset_prep.md) for details.
+### 5.5 切块
 
-## Offline data and index pipeline
-
-Build document chunks and local indexes from the normalized benchmark records:
-
-```bash
-python scripts/07_parse_and_chunk.py --datasets docvqa,chartqa --splits val,test
-python scripts/08_build_indexes.py
-python scripts/09_query_indexes.py "actual value per 1000 during 1975" --top-k 3
+```powershell
+.\.venv\Scripts\python.exe scripts\07_parse_and_chunk.py --project-root . --config configs/datasets.yaml --datasets docvqa --splits val
 ```
 
-Quick smoke run on one or two samples per split:
+### 5.6 构建索引
 
-```bash
-python scripts/10_run_data_index_pipeline.py --skip-download --prepare-from-hf-cache --limit-per-split 2 --run-mllm-smoke --mllm-dry-run --mllm-num-samples 2
-
-# Optional: download MinerU weights from ModelScope before real MinerU runs.
-python scripts/00_download_mineru_models.py
-
-# Run MinerU before chunking; use --mineru-mock for schema-only smoke tests.
-python scripts/10_run_data_index_pipeline.py --skip-download --prepare-from-hf-cache --limit-per-split 1 --run-mineru --mineru-mock --run-mllm-smoke --mllm-dry-run --mllm-num-samples 1
+```powershell
+.\.venv\Scripts\python.exe scripts\08_build_indexes.py --project-root . --config configs/datasets.yaml
 ```
 
-See [docs/data_indexing.md](docs/data_indexing.md) for schema, MinerU JSON handoff, index manifest, and query output details.
+### 5.7 一键跑完整索引流程
 
-For end-to-end teammate onboarding and deployment steps, see [docs/deployment_init.md](docs/deployment_init.md).
-For OpenAI-compatible LLM/VLM integration steps, see [docs/model_integration_openai_compatible.md](docs/model_integration_openai_compatible.md).
-
-## Research-style evaluation
-
-This project includes a reproducible evaluation protocol for retrieval, answer quality, and citation grounding so the system can be reported as a multimodal RAG architecture rather than only a chat demo.
-
-Retrieval-only benchmark:
-```bash
-python scripts/12_run_benchmark_eval.py --suite retrieval_benchmark --datasets docvqa --splits val --limit-per-split 100
+```powershell
+.\.venv\Scripts\python.exe scripts\10_run_data_index_pipeline.py --project-root . --datasets docvqa --splits val
 ```
 
-Full RAG benchmark (requires backend running):
-```bash
-python -m src api
-python scripts/12_run_benchmark_eval.py --suite rag_benchmark --datasets docvqa --splits val --limit-per-split 100 --mode rag
+## 6. 评测与实验
+
+### 6.1 构建 `unique-docpage-100` 测试集
+
+```powershell
+.\.venv\Scripts\python.exe scripts\15_build_unique_docpage_benchmark.py --project-root .
 ```
 
-Outputs are written to `outputs/eval/` as:
-- sample-level `jsonl`
-- machine-readable summary `json`
-- report-ready summary `md`
+### 6.2 运行主评测
 
-See [docs/evaluation_protocol.md](docs/evaluation_protocol.md) for the full evaluation design and reporting guidance.
+```powershell
+.\.venv\Scripts\python.exe scripts\12_run_benchmark_eval.py ^
+  --project-root . ^
+  --config configs/eval.yaml ^
+  --datasets-config configs/datasets.yaml ^
+  --suite retrieval_benchmark ^
+  --mode rag ^
+  --datasets docvqa ^
+  --splits val ^
+  --sample-manifest outputs/eval/docvqa_val_unique_docpage_100.manifest.jsonl ^
+  --top-k 5 ^
+  --run-name docvqa_val_unique_docpage_100_rag_stronger_qia_base
+```
+
+### 6.3 运行消融实验
+
+```powershell
+.\.venv\Scripts\python.exe scripts\18_run_ablation_suite.py --project-root . --groups all
+```
+
+按组运行示例：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\18_run_ablation_suite.py --project-root . --groups retrieval
+.\.venv\Scripts\python.exe scripts\18_run_ablation_suite.py --project-root . --groups visual
+.\.venv\Scripts\python.exe scripts\18_run_ablation_suite.py --project-root . --groups gating
+```
+
+### 6.4 生成实验表格与论文插图素材
+
+```powershell
+.\.venv\Scripts\python.exe scripts\16_generate_benchmark_assets.py --project-root .
+.\.venv\Scripts\python.exe scripts\19_generate_ablation_tables.py --project-root .
+.\.venv\Scripts\python.exe scripts\20_generate_ablation_overview.py --project-root .
+```
+
+## 7. 常用脚本说明
+
+### 环境与连通性
+
+- `scripts/00_prepare_env.ps1`：准备本地环境
+- `scripts/00_download_mineru_models.py`：下载 MinerU 模型
+- `scripts/04_check_model_connectivity.py`：检查模型服务连接
+
+### 数据与索引
+
+- `scripts/01_download_datasets.py`：下载数据集
+- `scripts/01_prepare_datasets.py`：规范化数据集
+- `scripts/06_run_mineru.py`：解析 PDF / 图片
+- `scripts/07_parse_and_chunk.py`：切块
+- `scripts/08_build_indexes.py`：构建检索索引
+- `scripts/09_query_indexes.py`：调试索引查询
+- `scripts/10_run_data_index_pipeline.py`：一键跑数据索引流程
+
+### 评测与分析
+
+- `scripts/11_smoke_mllm_eval.py`：评测冒烟测试
+- `scripts/12_run_benchmark_eval.py`：主评测脚本
+- `scripts/14_analyze_benchmark_errors.py`：错误分析
+- `scripts/15_build_unique_docpage_benchmark.py`：构建评测子集
+- `scripts/18_run_ablation_suite.py`：消融实验总控
+
+### 结果整理
+
+- `scripts/16_generate_benchmark_assets.py`：生成图表与表格素材
+- `scripts/19_generate_ablation_tables.py`：生成消融表
+- `scripts/20_generate_ablation_overview.py`：汇总消融结果
+- `scripts/21_build_strict_visual_subset.py`：构建严格视觉子集
+- `scripts/22_generate_strict_visual_tables.py`：严格视觉子集表格
+- `scripts/23_generate_gate_target_table.py`：gate 目标切片表
+
+## 8. 核心代码结构说明
+
+### `src/serving`
+
+- `api.py`：FastAPI 主服务，负责
+  - `/api/v1/chat` 问答
+  - citation 生成
+  - 工作区与临时图片问答组装
+  - Web 静态前端挂载
+- `workspaces.py`：工作区生命周期、文件解析、工作区检索
+- `deps.py`：依赖注入，加载检索器和模型客户端
+- `schemas.py`：API 请求/响应结构
+
+### `src/models`
+
+- 模型客户端封装
+- 文本/视觉检索器
+- 稀疏检索与 rerank 逻辑
+
+### `src/evaluation`
+
+- 基准样本读取
+- 指标计算
+- RAG 与检索评测主流程
+
+### `src/ui`
+
+- `web_static/`：当前线上使用的前端页面
+- `services/`：前端 API 调用逻辑
+
+### `src/utils`
+
+- 全局配置读取
+- 路径、环境变量与 YAML 配置管理
+
+## 9. 快速启动最短路径
+
+如果只想快速跑通演示：
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+.\.venv\Scripts\python.exe scripts\04_check_model_connectivity.py --project-root .
+.\.venv\Scripts\python.exe scripts\05_launch_api.py
+```
+
+然后打开：
+
+```text
+http://127.0.0.1:8000
+```
